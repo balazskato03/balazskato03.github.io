@@ -89,8 +89,17 @@
   }
 
   // Enter key triggers search
+  //nameInput.addEventListener('keydown', function (e) {
+    //if (e.key === 'Enter') onRun();
+  //});
+  //runBtn.addEventListener('click', onRun);
+  if (nameInput && runBtn) {
   nameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') onRun();
   });
   runBtn.addEventListener('click', onRun);
+} else {
+  console.warn('Inputs not found in DOM.');
+}
+
 </script>

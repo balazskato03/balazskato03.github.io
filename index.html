@@ -37,122 +37,102 @@
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Flagged keywords to check co-occurrences with:
-    const FLAGGED = [
-      'Orbán Viktor',
-      'Tisza party',
-      'Fidesz party',
-      'Magyar Péter'
-    ];
+    document.addEventListener('DOMContentLoaded', function () {
+      // Flagged and Discovery keywords
+      const FLAGGED = [
+        'Orbán Viktor', 'Tisza party', 'Fidesz party', 'Magyar Péter'
+      ];
+      const DISCOVERY = [
+        'Google Scholar', 'ORCID', 'ResearchGate', 'LinkedIn',
+        'Twitter','Facebook','Instagram','publications'
+      ];
 
-    // Additional discovery terms:
-    const DISCOVERY = [
-      'Google Scholar',
-      'ORCID',
-      'ResearchGate',
-      'LinkedIn',
-      'Twitter',
-      'Facebook',
-      'Instagram',
-      'publications'
-    ];
+      // Get DOM elements
+      const nameInput = document.getElementById('nameInput');
+      const runBtn = document.getElementById('runBtn');
+      const plannedEl = document.getElementById('planned');
+      const resultsEl = document.getElementById('results');
 
-    const nameInput = document.getElementById('nameInput');
-    const runBtn = document.getElementById('runBtn');
-    const plannedEl = document.getElementById('planned');
-    const resultsEl = document.getElementById('results');
+      if (!nameInput || !runBtn || !plannedEl || !resultsEl) {
+        console.warn('Inputs not found in DOM.');
+        return;
+      }
 
-    if (!nameInput || !runBtn || !plannedEl || !resultsEl) {
-      console.warn('Inputs not found in DOM.');
-      return;
-    }
+      function buildQueries(fullName) {
+        const quoted = '"' + fullName.trim() + '"';
+        const cooccurrence = FLAGGED.map(k => quoted + ' "' + k + '"');
+        const discovery = DISCOVERY.map(k => quoted + ' ' + k);
+        return {
+          cooccurrence: cooccurrence,
+          discovery: discovery,
+          standalone: [quoted]
+        };
+      }
 
-    function buildQueries(fullName) {
-      const quoted = '"' + fullName.trim() + '"';
-      const cooccurrence = FLAGGED.map(k => quoted + ' "' + k + '"');
-      const discovery = DISCOVERY.map(k => quoted + ' ' + k);
-      return { cooccurrence, discovery, standalone: [quoted] };
-    }
+      function renderPlanned(qs) {
+        function makeList(title, arr) {
+          return '<div class="row"><strong>' + title + ':</strong> '
+            + arr.map(q => '<code>' + q + '</code>').join(' · ')
+            + '</div>';
+        }
+        plannedEl.innerHTML =
+          makeList('Co-occurrence', qs.cooccurrence) +
+          makeList('Discovery', qs.discovery) +
+          makeList('Standalone', qs.standalone);
+      }
 
-    function renderPlanned(qs) {
-      const makeList = (title, arr) => `
-        <div class="row"><strong>${title}:</strong> ${arr.map(q => `<code>${q}</code>`).join(' · ')}</div>
-      `;
-      plannedEl.innerHTML = makeList('Co-occurrence', qs.cooccurrence) + makeList('Discovery', qs.discovery) + makeList('Standalone', qs.standalone);
-    }
+      async function braveSearch(q) {
+        const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        return data.items || [];
+      }
 
-    async function braveSearch(q) {
-      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      return data.items || [];
-    }
-    function wait(ms) {
-  return new Promise(function (resolve) { setTimeout(resolve, ms); });
-}
+      function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
 
-    async function onRun() {
-  const fullName = nameInput.value.trim();
-  if (!fullName) { alert('Type a full name first.'); return; }
+      async function onRun() {
+        const fullName = nameInput.value.trim();
+        if (!fullName) { alert('Type a full name first.'); return; }
+        const queries = buildQueries(fullName);
+        renderPlanned(queries);
+        resultsEl.innerHTML = 'Searching...';
 
-  const queries = buildQueries(fullName);
-  renderPlanned(queries);
-  resultsEl.innerHTML = 'Searching...';
+        const allQueries = [].concat(
+          queries.cooccurrence, queries.discovery, queries.standalone
+        );
+        const sections = [];
 
-  const allQueries = []
-    .concat(queries.cooccurrence)
-    .concat(queries.discovery)
-    .concat(queries.standalone);
+        for (const q of allQueries) {
+          try {
+            const items = await braveSearch(q);
+            sections.push({ q: q, items: items });
+          } catch (err) {
+            sections.push({ q: q, items: [], error: String(err) });
+          }
+          await wait(1000); // 1 request per second
+        }
 
-  const sections = [];
+        resultsEl.innerHTML = sections.map(function (sec) {
+          const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
+          if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
+          if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
+          const list = sec.items.map(it =>
+            '<div class="row">' +
+              '<a href="' + it.link + '" target="_blank" rel="noopener">' + it.title + '</a>' +
+              '<div class="muted">' + it.snippet + '</div>' +
+            '</div>'
+          ).join('');
+          return header + list;
+        }).join('');
+      }
 
-  for (const q of allQueries) {
-    try {
-      const items = await braveSearch(q);
-      sections.push({ q: q, items: items });
-    } catch (err) {
-      sections.push({ q: q, items: [], error: String(err) });
-    }
-
-    // 1 request per second throttle
-    await wait(1000);
-  }
-
-  resultsEl.innerHTML = sections.map(function (sec) {
-    const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
-    if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
-    if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
-    const list = sec.items.map(function (it) {
-      return '<div class="row">' +
-        '<a href="' + it.link + '" target="_blank" rel="noopener">' + it.title + '</a>' +
-        '<div class="muted">' + it.snippet + '</div>' +
-      '</div>';
-    }).join('');
-    return header + list;
-  }).join('');
-}
-
-      resultsEl.innerHTML = sections.map(sec => {
-        const header = `<div class="row"><strong>Query:</strong> <code>${sec.q}</code></div>`;
-        if (sec.error) return header + `<div class="row muted">Error: ${sec.error}</div>`;
-        if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
-        const list = sec.items.map(it =>
-          `<div class="row">
-             <a href="${it.link}" target="_blank" rel="noopener">${it.title}</a>
-             <div class="muted">${it.snippet}</div>
-           </div>`
-        ).join('');
-        return header + list;
-      }).join('');
-    }
-
-    // Event listeners
-    nameInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') onRun();
+      nameInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') onRun();
+      });
+      runBtn.addEventListener('click', onRun);
     });
-    runBtn.addEventListener('click', onRun);
-  });
   </script>
 </body>
 </html>

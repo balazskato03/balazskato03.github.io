@@ -94,7 +94,7 @@ async function braveSearch(q) {
   const { items } = await res.json();
   return items;
     }
-  });
+  };
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   const items = (data.web?.results || []).slice(0, 5).map(r => ({

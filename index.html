@@ -88,26 +88,50 @@
       const data = await res.json();
       return data.items || [];
     }
+    function wait(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
 
     async function onRun() {
-      const fullName = nameInput.value.trim();
-      if (!fullName) { alert('Type a full name first.'); return; }
+  const fullName = nameInput.value.trim();
+  if (!fullName) { alert('Type a full name first.'); return; }
 
-      const queries = buildQueries(fullName);
-      renderPlanned(queries);
-      resultsEl.innerHTML = 'Searching...';
+  const queries = buildQueries(fullName);
+  renderPlanned(queries);
+  resultsEl.innerHTML = 'Searching...';
 
-      const allQueries = [...queries.cooccurrence, ...queries.discovery, ...queries.standalone];
+  const allQueries = []
+    .concat(queries.cooccurrence)
+    .concat(queries.discovery)
+    .concat(queries.standalone);
 
-      const sections = [];
-      for (const q of allQueries) {
-        try {
-          const items = await braveSearch(q);
-          sections.push({ q, items });
-        } catch (err) {
-          sections.push({ q, items: [], error: String(err) });
-        }
-      }
+  const sections = [];
+
+  for (const q of allQueries) {
+    try {
+      const items = await braveSearch(q);
+      sections.push({ q: q, items: items });
+    } catch (err) {
+      sections.push({ q: q, items: [], error: String(err) });
+    }
+
+    // 1 request per second throttle
+    await wait(1000);
+  }
+
+  resultsEl.innerHTML = sections.map(function (sec) {
+    const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
+    if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
+    if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
+    const list = sec.items.map(function (it) {
+      return '<div class="row">' +
+        '<a href="' + it.link + '" target="_blank" rel="noopener">' + it.title + '</a>' +
+        '<div class="muted">' + it.snippet + '</div>' +
+      '</div>';
+    }).join('');
+    return header + list;
+  }).join('');
+}
 
       resultsEl.innerHTML = sections.map(sec => {
         const header = `<div class="row"><strong>Query:</strong> <code>${sec.q}</code></div>`;

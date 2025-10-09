@@ -1,56 +1,119 @@
 <!doctype html>
-<html lang="en">
-<head>
+<html lang="en"><head>
   <meta charset="utf-8" />
   <title>Background Check (Beta)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; max-width: 920px; margin: 32px auto; padding: 0 16px; }
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --muted-color: #666666;
+      --border-color: #eeeeee;
+      --code-bg: #f6f8fa;
+      --input-bg: #ffffff;
+      --input-border: #d1d5da;
+    }
+    body.dark-mode {
+      --bg-color: #1a1a1a;
+      --text-color: #e0e0e0;
+      --muted-color: #a0a0a0;
+      --border-color: #333333;
+      --code-bg: #2d2d2d;
+      --input-bg: #2d2d2d;
+      --input-border: #404040;
+    }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      max-width: 920px;
+      margin: 32px auto;
+      padding: 0 16px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border-radius: 4px;
+      font-size: 14px;
+    }
     h1 { font-size: 20px; margin-bottom: 16px; }
     #box { display: flex; gap: 8px; }
-    input[type="text"] { flex: 1; padding: 12px; font-size: 16px; }
-    button { padding: 12px 16px; font-size: 16px; cursor: pointer; }
-    .muted { color: #666; font-size: 14px; }
+    input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--input-border);
+    }
+    button {
+      padding: 12px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--input-border);
+    }
+    .muted { color: var(--muted-color); font-size: 14px; }
     .section { margin-top: 24px; }
-    .row { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .row { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
     .status { margin-top: 8px; }
-    code { background: #f6f8fa; padding: 2px 4px; }
+    code { background: var(--code-bg); padding: 2px 4px; }
     .group-title { font-weight: 600; margin: 12px 0 8px; display:flex; align-items:center; gap:12px; }
     .checkboxes label { margin: 4px 12px 4px 0; display: inline-block; }
     .group-wrap { margin-bottom: 8px; }
   </style>
-</head>
-<body>
+</head><body>
+  <button id="theme-toggle">🌙 Dark Mode</button>
   <h1>Background Check (Beta)</h1>
-
   <div id="box">
     <input id="nameInput" type="text" placeholder="Enter educator name..." autocomplete="off" />
     <button id="runBtn">Run Check</button>
   </div>
   <div class="muted">Press Enter or click Run Check to build searches for the name with selected keywords.</div>
-
   <div class="section">
     <h2>Filters</h2>
     <div id="filters" class="checkboxes"></div>
   </div>
-
   <div class="section">
     <h2>Planned searches</h2>
     <div id="planned"></div>
   </div>
-
   <div class="section">
     <h2>Results</h2>
     <div id="results" class="status muted">No searches run yet.</div>
   </div>
-
   <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+      body.classList.add('dark-mode');
+      themeToggle.textContent = '☀️ Light Mode';
+    }
+    themeToggle.addEventListener('click', function() {
+      body.classList.toggle('dark-mode');
+      if (body.classList.contains('dark-mode')) {
+        themeToggle.textContent = '☀️ Light Mode';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        themeToggle.textContent = '🌙 Dark Mode';
+        localStorage.setItem('theme', 'light');
+      }
+    });
     // Co‑occurrence keyword sets by language
     const FLAGGED_EN = [
       'MCC','Mathias Corvinus Collegium','conference','conference speech','keynote speech',
       'presentation','public speech','panel discussion',
-    
     ];
     const FLAGGED_HU = [
       'konferencia','konferencia-előadás','előadás','nyilvános beszéd','nyitóelőadás',
@@ -61,22 +124,18 @@
       'conferință','prezentare','discurs public','cuvântare','keynote',
       'panel','dezbatere','summit','curs','opinie','interviu','interviuri'
     ];
-
     // Discovery sources
     const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
-
     // DOM
     const nameInput = document.getElementById('nameInput');
     const runBtn = document.getElementById('runBtn');
     const filtersEl = document.getElementById('filters');
     const plannedEl = document.getElementById('planned');
     const resultsEl = document.getElementById('results');
-
     if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl) {
       console.warn('Inputs not found in DOM.');
       return;
     }
-
     // Render a row with master checkbox and children
     function renderGroup(title, key, items) {
       const children = items.map(function (label, i) {
@@ -92,7 +151,6 @@
         '</div>'
       ].join('');
     }
-
     // Render all rows
     function renderFilters() {
       filtersEl.innerHTML =
@@ -100,27 +158,23 @@
         renderGroup('Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
         renderGroup('Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
         renderGroup('Discovery sources', 'discovery', DISCOVERY) +
-        '<div class="muted">Uncheck any items to exclude before running. Use each “Select all” to toggle a row.</div>';
-
+        '<div class="muted">Uncheck any items to exclude before running. Use each "Select all" to toggle a row.</div>';
       // Enable master behavior per row
       setupMasterBehavior('flagged-en');
       setupMasterBehavior('flagged-hu');
       setupMasterBehavior('flagged-ro');
       setupMasterBehavior('discovery');
     }
-
-    // Master “Select all” logic + indeterminate state
+    // Master "Select all" logic + indeterminate state
     function setupMasterBehavior(groupKey) {
       const master = document.querySelector('input.master[data-group="' + groupKey + '"]');
       const children = Array.from(filtersEl.querySelectorAll('input.flt[data-group="' + groupKey + '"]'));
-
       // Master toggles all children
       master.addEventListener('change', function () {
         const checked = master.checked;
         children.forEach(function (c) { c.checked = checked; });
         master.indeterminate = false;
       });
-
       // Children refresh master state
       function refreshMaster() {
         const total = children.length;
@@ -132,15 +186,12 @@
       children.forEach(c => c.addEventListener('change', refreshMaster));
       refreshMaster();
     }
-
     // Initial render
     renderFilters();
-
          // Build queries from all rows
     function buildQueries(fullName) {
       const quoted = '"' + fullName.trim() + '"';
       const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
-
       // Read checked labels directly from DOM (keeps Part 3 decoupled)
       filtersEl.querySelectorAll('input.flt').forEach(function (box) {
         if (!box.checked) return;
@@ -152,17 +203,13 @@
         else if (grp === 'flagged-hu') picks['flagged-hu'].push(label);
         else if (grp === 'flagged-ro') picks['flagged-ro'].push(label);
       });
-
       const cooccurrence = []
         .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
         .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
         .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
-
       const discovery = picks['discovery'].map(k => quoted + ' ' + k);
-
       return { cooccurrence, discovery, standalone: [quoted] };
     }
-
     // Planned searches view
     function renderPlanned(qs) {
       function makeList(title, arr) {
@@ -175,7 +222,6 @@
         makeList('Discovery', qs.discovery) +
         makeList('Standalone', qs.standalone);
     }
-
     // Netlify proxy call
     async function braveSearch(q) {
       const res = await fetch('/api/search?q=' + encodeURIComponent(q));
@@ -183,22 +229,17 @@
       const data = await res.json();
       return data.items || [];
     }
-
     // Throttle
     function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
     // Run
     async function onRun() {
       const fullName = nameInput.value.trim();
       if (!fullName) { alert('Type a full name first.'); return; }
-
       const queries = buildQueries(fullName);
       renderPlanned(queries);
       resultsEl.innerHTML = 'Searching...';
-
       const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
       const sections = [];
-
       for (const q of allQueries) {
         try {
           const items = await braveSearch(q);
@@ -208,7 +249,6 @@
         }
         await wait(1000); // 1 req/sec
       }
-
       resultsEl.innerHTML = sections.map(function (sec) {
         const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
         if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
@@ -222,7 +262,6 @@
         return header + list;
       }).join('');
     }
-
     // Events
     nameInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') onRun();
@@ -230,5 +269,4 @@
     runBtn.addEventListener('click', onRun);
   });
   </script>
-</body>
-</html>
+</body></html>

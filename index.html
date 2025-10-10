@@ -1,5 +1,6 @@
-<!doctype html>
-<html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
   <meta charset="utf-8" />
   <title>Background Check (Beta)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -70,11 +71,12 @@
     .checkboxes label { margin: 4px 12px 4px 0; display: inline-block; }
     .group-wrap { margin-bottom: 8px; }
   </style>
-</head><body>
+</head>
+<body>
   <button id="theme-toggle">🌙 Dark Mode</button>
   <h1>Background Check (Beta)</h1>
   <div id="box">
-    <input id="nameInput" type="text" placeholder="Enter educator name..." autocomplete="off" />
+    <input type="text" id="nameInput" placeholder="Enter educator name..." autocomplete="off"/>
     <button id="runBtn">Run Check</button>
   </div>
   <div class="muted">Press Enter or click Run Check to build searches for the name with selected keywords.</div>
@@ -116,13 +118,12 @@
       'presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'
     ];
     const FLAGGED_HU = [
-      'konferencia','konferencia-előadás','előadás','nyilvános beszéd','nyitóelőadás',
-      'panelbeszélgetés','kerekasztal-beszélgetés','csúcstalálkozó','kurzus','tanfolyam',
-      'képzés','vita','vélemény','interjú','interjúk'
+      'MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás',
+      'előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'
     ];
     const FLAGGED_RO = [
-      'conferință','prezentare','discurs public','cuvântare','keynote',
-      'panel','dezbatere','summit','curs','opinie','interviu','interviuri'
+      'MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal',
+      'prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'
     ];
     // Discovery sources
     const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
@@ -269,4 +270,5 @@
     runBtn.addEventListener('click', onRun);
   });
   </script>
-</body></html>
+</body>
+</html>

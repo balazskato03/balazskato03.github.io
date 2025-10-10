@@ -1,6 +1,107 @@
-function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Person Search Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { margin-bottom: 20px; color: #333; }
+    .input-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+    input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #0056b3; }
+    .filters { margin-bottom: 20px; }
+    .filter-item { margin-bottom: 10px; }
+    .filter-item input[type="checkbox"] { margin-right: 8px; }
+    .planned, .results { margin-top: 30px; }
+    .section-title { font-weight: bold; margin-bottom: 10px; color: #333; }
+    .row { margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 4px; }
+    .row a { color: #007bff; text-decoration: none; font-weight: bold; }
+    .row a:hover { text-decoration: underline; }
+    .muted { color: #666; font-size: 13px; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Person Search Tool</h1>
+    <div class="input-group">
+      <label for="nameInput">Full Name:</label>
+      <input type="text" id="nameInput" placeholder="Enter full name">
+    </div>
+    <div class="filters">
+      <div class="section-title">Search Filters:</div>
+      <div id="filtersList"></div>
+    </div>
+    <button id="runBtn">Run Search</button>
+    <div class="planned">
+      <div class="section-title">Planned Queries:</div>
+      <div id="plannedQueries"></div>
+    </div>
+    <div class="results">
+      <div class="section-title">Results:</div>
+      <div id="resultsEl"></div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    const nameInput = document.getElementById('nameInput');
+    const runBtn = document.getElementById('runBtn');
+    const filtersList = document.getElementById('filtersList');
+    const plannedQueries = document.getElementById('plannedQueries');
+    const resultsEl = document.getElementById('resultsEl');
 
-    // Run
+    const filters = [
+      { id: 'linkedin', label: 'LinkedIn', enabled: true },
+      { id: 'twitter', label: 'Twitter', enabled: true },
+      { id: 'github', label: 'GitHub', enabled: true },
+      { id: 'email', label: 'Email', enabled: true }
+    ];
+
+    function renderFilters() {
+      filtersList.innerHTML = filters.map(function(f) {
+        const checked = f.enabled ? 'checked' : '';
+        return '<div class="filter-item"><input type="checkbox" id="filter-' + f.id + '" ' + checked + '> <label for="filter-' + f.id + '">' + f.label + '</label></div>';
+      }).join('');
+      filters.forEach(function(f) {
+        document.getElementById('filter-' + f.id).addEventListener('change', function(e) {
+          f.enabled = e.target.checked;
+        });
+      });
+    }
+
+    function buildQueries(fullName) {
+      return {
+        cooccurrence: [
+          fullName + ' site:linkedin.com',
+          fullName + ' site:twitter.com'
+        ],
+        discovery: [
+          fullName + ' profile',
+          fullName + ' contact'
+        ],
+        standalone: [
+          fullName
+        ]
+      };
+    }
+
+    function renderPlanned(queries) {
+      const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
+      plannedQueries.innerHTML = allQueries.map(function(q) {
+        return '<div class="muted">' + q + '</div>';
+      }).join('');
+    }
+
+    async function braveSearch(query) {
+      return [];
+    }
+
+    function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
     async function onRun() {
       const fullName = nameInput.value.trim();
       if (!fullName) { alert('Type a full name first.'); return; }
@@ -16,7 +117,7 @@ function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
         } catch (err) {
           sections.push({ q, items: [], error: String(err) });
         }
-        await wait(1000); // 1 req/sec
+        await wait(1000);
       }
       resultsEl.innerHTML = sections.map(function (sec) {
         const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
@@ -32,15 +133,12 @@ function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
       }).join('');
     }
 
-    // Events
     nameInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') onRun();
     });
     runBtn.addEventListener('click', onRun);
-
-    // Initial render
     renderFilters();
-  });
+  })();
   </script>
 </body>
 </html>

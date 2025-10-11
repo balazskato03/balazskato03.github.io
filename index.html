@@ -36,239 +36,240 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      padding: 8px 16px;
-      cursor: pointer;
+      padding: 8px 12px;
+      background: var(--code-bg);
       border: 1px solid var(--border-color);
-      background-color: var(--input-bg);
-      color: var(--text-color);
       border-radius: 4px;
+      cursor: pointer;
       font-size: 14px;
-    }
-    h1 { font-size: 20px; margin-bottom: 16px; }
-    #box { display: flex; gap: 8px; }
-    input[type="text"] {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-      background-color: var(--input-bg);
       color: var(--text-color);
+    }
+    h1 {
+      margin-bottom: 16px;
+    }
+    input, button {
+      font-size: 15px;
+      padding: 8px 12px;
+      border-radius: 4px;
       border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+    }
+    input {
+      width: 400px;
+      margin-right: 8px;
     }
     button {
-      padding: 12px 16px;
-      font-size: 16px;
       cursor: pointer;
-      background-color: var(--input-bg);
-      color: var(--text-color);
-      border: 1px solid var(--input-border);
     }
-    .muted { color: var(--muted-color); font-size: 14px; }
-    .section { margin-top: 24px; }
-    .row { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
-    .status { margin-top: 8px; }
-    code { background: var(--code-bg); padding: 2px 4px; }
-    .group-title { font-weight: 600; margin: 12px 0 8px; display:flex; align-items:center; gap:12px; }
-    .checkboxes label { margin: 4px 12px 4px 0; display: inline-block; }
-    .group-wrap { margin-bottom: 8px; }
+    button:hover {
+      opacity: 0.8;
+    }
+    #planned, #results {
+      margin-top: 24px;
+    }
+    .row {
+      margin-bottom: 12px;
+      padding: 8px;
+      background: var(--code-bg);
+      border-radius: 4px;
+    }
+    code {
+      background: var(--bg-color);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    body.dark-mode a {
+      color: #58a6ff;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .muted {
+      color: var(--muted-color);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    /* Dropdown style for language keyword lists */
+    .keyword-dropdown {margin-bottom: 1em;}
+    .dropdown-content {display: none; margin-top: 0.5em;}
+    .dropdown-content.show {display: block;}
   </style>
 </head>
 <body>
-  <button id="theme-toggle">🌙 Dark Mode</button>
+  <button id="theme-toggle">Toggle Dark Mode</button>
   <h1>Background Check (Beta)</h1>
-  <div id="box">
-    <input type="text" id="nameInput" placeholder="Enter educator name..." autocomplete="off"/>
+  <div>
+    <input id="nameInput" placeholder="Enter full name..." />
     <button id="runBtn">Run Check</button>
   </div>
-  <div class="muted">Press Enter or click Run Check to build searches for the name with selected keywords.</div>
-  <div class="section">
-    <h2>Filters</h2>
-    <div id="filters" class="checkboxes"></div>
-  </div>
-  <div class="section">
-    <h2>Planned searches</h2>
-    <div id="planned"></div>
-  </div>
-  <div class="section">
-    <h2>Results</h2>
-    <div id="results" class="status muted">No searches run yet.</div>
-  </div>
+  <div id="planned"></div>
+  <div id="results"></div>
+
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Theme toggle functionality
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    if (currentTheme === 'dark') {
-      body.classList.add('dark-mode');
-      themeToggle.textContent = '☀️ Light Mode';
-    }
-    themeToggle.addEventListener('click', function() {
-      body.classList.toggle('dark-mode');
-      if (body.classList.contains('dark-mode')) {
-        themeToggle.textContent = '☀️ Light Mode';
-        localStorage.setItem('theme', 'dark');
-      } else {
-        themeToggle.textContent = '🌙 Dark Mode';
-        localStorage.setItem('theme', 'light');
-      }
-    });
-    // Co‑occurrence keyword sets by language
-    const FLAGGED_EN = [
-      'MCC','Mathias Corvinus Collegium','politics','policy','education','teaching','research','conference','conference speech','keynote speech',
-      'presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'
-    ];
-    const FLAGGED_HU = [
-      'MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás',
-      'előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'
-    ];
-    const FLAGGED_RO = [
-      'MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal',
-      'prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'
-    ];
-    // Discovery sources
-    const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
-    // DOM
-    const nameInput = document.getElementById('nameInput');
-    const runBtn = document.getElementById('runBtn');
-    const filtersEl = document.getElementById('filters');
-    const plannedEl = document.getElementById('planned');
-    const resultsEl = document.getElementById('results');
-    if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl) {
-      console.warn('Inputs not found in DOM.');
-      return;
-    }
-    // Render a row with master checkbox and children
-    function renderGroup(title, key, items) {
-      const children = items.map(function (label, i) {
-        return '<label><input type="checkbox" class="flt" data-group="' + key + '" data-index="' + i + '" checked> ' + label + '</label>';
-      }).join('');
-      return [
-        '<div class="row group-wrap" data-group-wrap="' + key + '">',
-          '<div class="group-title">',
-            '<label><input type="checkbox" class="master" data-group="' + key + '" checked> Select all</label>',
-            '<span>' + title + '</span>',
-          '</div>',
-          '<div>' + children + '</div>',
-        '</div>'
-      ].join('');
-    }
-    // Render all rows
-    function renderFilters() {
-      filtersEl.innerHTML =
-        renderGroup('Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
-        renderGroup('Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
-        renderGroup('Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
-        renderGroup('Discovery sources', 'discovery', DISCOVERY) +
-        '<div class="muted">Uncheck any items to exclude before running. Use each "Select all" to toggle a row.</div>';
-      // Enable master behavior per row
-      setupMasterBehavior('flagged-en');
-      setupMasterBehavior('flagged-hu');
-      setupMasterBehavior('flagged-ro');
-      setupMasterBehavior('discovery');
-    }
-    // Master "Select all" logic + indeterminate state
-    function setupMasterBehavior(groupKey) {
-      const master = document.querySelector('input.master[data-group="' + groupKey + '"]');
-      const children = Array.from(filtersEl.querySelectorAll('input.flt[data-group="' + groupKey + '"]'));
-      // Master toggles all children
-      master.addEventListener('change', function () {
-        const checked = master.checked;
-        children.forEach(function (c) { c.checked = checked; });
-        master.indeterminate = false;
-      });
-      // Children refresh master state
-      function refreshMaster() {
-        const total = children.length;
-        const on = children.filter(ch => ch.checked).length;
-        if (on === 0) { master.checked = false; master.indeterminate = false; }
-        else if (on === total) { master.checked = true; master.indeterminate = false; }
-        else { master.checked = false; master.indeterminate = true; }
-      }
-      children.forEach(c => c.addEventListener('change', refreshMaster));
-      refreshMaster();
-    }
-    // Initial render
-    renderFilters();
-         // Build queries from all rows
-    function buildQueries(fullName) {
-      const quoted = '"' + fullName.trim() + '"';
-      const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
-      // Read checked labels directly from DOM (keeps Part 3 decoupled)
-      filtersEl.querySelectorAll('input.flt').forEach(function (box) {
-        if (!box.checked) return;
-        const grp = box.getAttribute('data-group');
-        const label = (box.parentElement ? box.parentElement.textContent : '').trim();
-        if (!label) return;
+  const nameInput = document.getElementById('nameInput');
+  const runBtn = document.getElementById('runBtn');
+  const plannedEl = document.getElementById('planned');
+  const resultsEl = document.getElementById('results');
+  const themeToggle = document.getElementById('theme-toggle');
+
+  // Dark mode toggle
+  themeToggle.addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+  });
+
+  // Keywords by language
+  const keywords = {
+    'flagged-en': [
+      'fraud', 'scam', 'convicted', 'arrested', 'lawsuit', 'bankrupt',
+      'complaint', 'investigation', 'criminal', 'charges'
+    ],
+    'flagged-hu': [
+      'csalás', 'átverés', 'elítélték', 'letartóztatták', 'per', 'csőd',
+      'panasz', 'vizsgálat', 'bűnöző', 'vádak'
+    ],
+    'flagged-ro': [
+      'fraudă', 'înșelătorie', 'condamnat', 'arestat', 'proces', 'faliment',
+      'plângere', 'investigație', 'infracțional', 'acuzații'
+    ],
+    'discovery': [
+      'LinkedIn', 'Facebook', 'Twitter', 'Instagram', 'biography',
+      'profile', 'company', 'education', 'awards', 'publications'
+    ]
+  };
+
+  // Build queries
+  function buildQueries(fullName) {
+    const quoted = '"' + fullName + '"';
+    const picks = {
+      'flagged-en': [],
+      'flagged-hu': [],
+      'flagged-ro': [],
+      'discovery': []
+    };
+    Object.keys(keywords).forEach(function(grp) {
+      const arr = keywords[grp];
+      arr.forEach(function(label) {
         if (grp === 'discovery') picks['discovery'].push(label);
         else if (grp === 'flagged-en') picks['flagged-en'].push(label);
         else if (grp === 'flagged-hu') picks['flagged-hu'].push(label);
         else if (grp === 'flagged-ro') picks['flagged-ro'].push(label);
       });
-      const cooccurrence = []
-        .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
-        .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
-        .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
-      const discovery = picks['discovery'].map(k => quoted + ' ' + k);
-      return { cooccurrence, discovery, standalone: [quoted] };
-    }
-    // Planned searches view
-    function renderPlanned(qs) {
-      function makeList(title, arr) {
-        return '<div class="row"><strong>' + title + ':</strong> ' +
-          arr.map(q => '<code>' + q + '</code>').join(' · ') +
-          '</div>';
-      }
-      plannedEl.innerHTML =
-        makeList('Co-occurrence', qs.cooccurrence) +
-        makeList('Discovery', qs.discovery) +
-        makeList('Standalone', qs.standalone);
-    }
-    // Netlify proxy call
-    async function braveSearch(q) {
-      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      return data.items || [];
-    }
-    // Throttle
-    function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-    // Run
-    async function onRun() {
-      const fullName = nameInput.value.trim();
-      if (!fullName) { alert('Type a full name first.'); return; }
-      const queries = buildQueries(fullName);
-      renderPlanned(queries);
-      resultsEl.innerHTML = 'Searching...';
-      const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
-      const sections = [];
-      for (const q of allQueries) {
-        try {
-          const items = await braveSearch(q);
-          sections.push({ q, items });
-        } catch (err) {
-          sections.push({ q, items: [], error: String(err) });
-        }
-        await wait(1000); // 1 req/sec
-      }
-      resultsEl.innerHTML = sections.map(function (sec) {
-        const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
-        if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
-        if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
-        const list = sec.items.map(function (it) {
-          return '<div class="row">' +
-            '<a href="' + it.link + '" target="_blank" rel="noopener">' + it.title + '</a>' +
-            '<div class="muted">' + it.snippet + '</div>' +
-          '</div>';
-        }).join('');
-        return header + list;
-      }).join('');
-    }
-    // Events
-    nameInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') onRun();
     });
-    runBtn.addEventListener('click', onRun);
+    const cooccurrence = []
+      .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
+      .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
+      .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
+    const discovery = picks['discovery'].map(k => quoted + ' ' + k);
+    return { cooccurrence, discovery, standalone: [quoted] };
+  }
+
+  // Planned searches view
+  function renderPlanned(qs) {
+    function makeList(title, arr) {
+      return '<div class="row"><strong>' + title + ':</strong> ' +
+        arr.map(q => '<code>' + q + '</code>').join(' · ') +
+        '</div>';
+    }
+    plannedEl.innerHTML =
+      makeList('Co-occurrence', qs.cooccurrence) +
+      makeList('Discovery', qs.discovery) +
+      makeList('Standalone', qs.standalone);
+  }
+
+  // Netlify proxy call
+  async function braveSearch(q) {
+    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return data.items || [];
+  }
+
+  // Throttle
+  function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // Run
+  async function onRun() {
+    const fullName = nameInput.value.trim();
+    if (!fullName) { alert('Type a full name first.'); return; }
+    const queries = buildQueries(fullName);
+    renderPlanned(queries);
+    resultsEl.innerHTML = 'Searching...';
+    const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
+    const sections = [];
+    for (const q of allQueries) {
+      try {
+        const items = await braveSearch(q);
+        sections.push({ q, items });
+      } catch (err) {
+        sections.push({ q, items: [], error: String(err) });
+      }
+      await wait(1000); // 1 req/sec
+    }
+    resultsEl.innerHTML = sections.map(function (sec) {
+      const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
+      if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
+      if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
+      const list = sec.items.map(function (it) {
+        return '<div class="row">' +
+          '<a href="' + it.url + '" target="_blank" rel="noopener">' + it.title + '</a>' +
+          '<div class="muted">' + it.snippet + '</div>' +
+        '</div>';
+      }).join('');
+      return header + list;
+    }).join('');
+  }
+
+  // Events
+  nameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') onRun();
   });
+  runBtn.addEventListener('click', onRun);
+  </script>
+
+  <!-- Dropdown style for language keyword lists -->
+  <style>
+    .keyword-dropdown {margin-bottom: 1em;}
+    .dropdown-content {display: none; margin-top: 0.5em;}
+    .dropdown-content.show {display: block;}
+  </style>
+
+  <!-- Dropdowns for keywords with English open by default -->
+  <div class="keyword-dropdown">
+    <button onclick="toggleDropdown('en')">English Keywords</button>
+    <div id="dropdown-en" class="dropdown-content show">
+      <code>fraud, scam, convicted, arrested, lawsuit, bankrupt, complaint, investigation, criminal, charges</code>
+    </div>
+  </div>
+  <div class="keyword-dropdown">
+    <button onclick="toggleDropdown('hu')">Hungarian Keywords</button>
+    <div id="dropdown-hu" class="dropdown-content">
+      <code>csalás, átverés, elítélték, letartóztatták, per, csőd, panasz, vizsgálat, bűnöző, vádak</code>
+    </div>
+  </div>
+  <div class="keyword-dropdown">
+    <button onclick="toggleDropdown('ro')">Romanian Keywords</button>
+    <div id="dropdown-ro" class="dropdown-content">
+      <code>fraudă, înșelătorie, condamnat, arestat, proces, faliment, plângere, investigație, infracțional, acuzații</code>
+    </div>
+  </div>
+  <script>
+  function toggleDropdown(lang) {
+    ['en', 'hu', 'ro'].forEach(function(l) {
+      const el = document.getElementById('dropdown-' + l);
+      if (l === lang) {
+        el.classList.toggle('show');
+      } else {
+        el.classList.remove('show');
+      }
+    });
+  }
   </script>
 </body>
 </html>

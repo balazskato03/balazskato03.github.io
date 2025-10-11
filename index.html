@@ -1,303 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8"/>
   <title>Background Check (Beta)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
-    :root {
-      --bg-color: #ffffff;
-      --text-color: #000000;
-      --muted-color: #666666;
-      --border-color: #eeeeee;
-      --code-bg: #f6f8fa;
-      --input-bg: #ffffff;
-      --input-border: #d1d5da;
-    }
-    body.dark-mode {
-      --bg-color: #1a1a1a;
-      --text-color: #e0e0e0;
-      --muted-color: #a0a0a0;
-      --border-color: #333333;
-      --code-bg: #2d2d2d;
-      --input-bg: #2d2d2d;
-      --input-border: #404040;
-    }
-    body {
-      font-family: system-ui, Arial, sans-serif;
-      max-width: 920px;
-      margin: 32px auto;
-      padding: 0 16px;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      transition: background-color 0.3s, color 0.3s;
-    }
-    #theme-toggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 12px;
-      background: var(--code-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      color: var(--text-color);
-    }
-    h1 {
-      margin-bottom: 16px;
-    }
-    input, button {
-      font-size: 15px;
-      padding: 8px 12px;
-      border-radius: 4px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: var(--text-color);
-    }
-    input {
-      width: 400px;
-      margin-right: 8px;
-    }
-    button {
-      cursor: pointer;
-    }
-    button:hover {
-      opacity: 0.8;
-    }
-    #planned, #results {
-      margin-top: 24px;
-    }
-    .row {
-      margin-bottom: 12px;
-      padding: 8px;
-      background: var(--code-bg);
-      border-radius: 4px;
-    }
-    code {
-      background: var(--bg-color);
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: monospace;
-      font-size: 13px;
-    }
-    a {
-      color: #0366d6;
-      text-decoration: none;
-    }
-    body.dark-mode a {
-      color: #58a6ff;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .muted {
-      color: var(--muted-color);
-      font-size: 13px;
-      margin-top: 4px;
-    }
-    /* Dropdown style for language keyword lists */
-    .keyword-dropdown {
-      margin-bottom: 1em;
-    }
-    .dropdown-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 0.5em;
-    }
-    .dropdown-content {
-      display: none;
-      margin-top: 0.5em;
-      padding: 10px;
-      background: var(--code-bg);
-      border-radius: 4px;
-    }
-    .dropdown-content.show {
-      display: block;
-    }
-    .show-hide-buttons {
-      margin-bottom: 1em;
-      display: flex;
-      gap: 10px;
-    }
+    :root{--bg-color:#fff;--text-color:#000;--muted-color:#666;--border-color:#eee;--code-bg:#f6f8fa;--input-bg:#fff;--input-border:#d1d5da}
+    body.dark-mode{--bg-color:#1a1a1a;--text-color:#e0e0e0;--muted-color:#a0a0a0;--border-color:#333;--code-bg:#2d2d2d;--input-bg:#2d2d2d;--input-border:#404040}
+    body{font-family:system-ui,Arial,sans-serif;max-width:920px;margin:32px auto;padding:0 16px;background-color:var(--bg-color);color:var(--text-color);transition:background-color .3s,color .3s}
+    #theme-toggle{position:absolute;top:20px;right:20px;padding:8px 12px;background:var(--code-bg);border:1px solid var(--border-color);border-radius:4px;cursor:pointer;font-size:14px;color:var(--text-color)}
+    h1{margin-bottom:16px}
+    h2{margin-top:32px;font-size:20px}
+    input,button{font-size:15px;padding:8px 12px;border-radius:4px;border:1px solid var(--input-border);background:var(--input-bg);color:var(--text-color)}
+    input{width:400px;margin-right:8px}
+    button{cursor:pointer}
+    button:hover{opacity:.8}
+    #planned,#results{margin-top:24px}
+    .row{margin-bottom:12px;padding:8px;background:var(--code-bg);border-radius:4px}
+    code{background:var(--bg-color);padding:2px 6px;border-radius:3px;font-family:monospace;font-size:13px}
+    a{color:#0366d6;text-decoration:none}
+    body.dark-mode a{color:#58a6ff}
+    a:hover{text-decoration:underline}
+    .muted{color:var(--muted-color);font-size:13px;margin-top:4px}
+    .keyword-section{margin:16px 0;border:1px solid var(--border-color);border-radius:6px}
+    .section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;user-select:none}
+    .section-header h3{margin:0;font-size:16px}
+    .section-actions{display:flex;gap:8px}
+    .section-body{display:none;padding:10px 12px;background:var(--code-bg)}
+    .section-body.show{display:block}
+    .checkbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 14px}
+    .controls{display:flex;gap:10px;margin:8px 0 16px}
   </style>
 </head>
 <body>
   <button id="theme-toggle">Toggle Dark Mode</button>
   <h1>Background Check (Beta)</h1>
   <div>
-    <input id="nameInput" placeholder="Enter full name..." />
+    <input id="nameInput" placeholder="Enter full name..."/>
     <button id="runBtn">Run Check</button>
   </div>
   <div id="planned"></div>
   <div id="results"></div>
-  <script>
-  const nameInput = document.getElementById('nameInput');
-  const runBtn = document.getElementById('runBtn');
-  const plannedEl = document.getElementById('planned');
-  const resultsEl = document.getElementById('results');
-  const themeToggle = document.getElementById('theme-toggle');
-  // Dark mode toggle
-  themeToggle.addEventListener('click', function() {
-    document.body.classList.toggle('dark-mode');
-  });
-  // Keywords by language
-  const keywords = {
-    'flagged-en': [
-      'fraud', 'scam', 'convicted', 'arrested', 'lawsuit', 'bankrupt',
-      'complaint', 'investigation', 'criminal', 'charges'
-    ],
-    'flagged-hu': [
-      'csalás', 'átverés', 'elítélték', 'letartóztatták', 'per', 'csőd',
-      'panasz', 'vizsgálat', 'bűnöző', 'vádak'
-    ],
-    'flagged-ro': [
-      'fraudă', 'înșelătorie', 'condamnat', 'arestat', 'proces', 'faliment',
-      'plângere', 'investigație', 'infracțional', 'acuzații'
-    ],
-    'discovery': [
-      'LinkedIn', 'Facebook', 'Twitter', 'Instagram', 'biography',
-      'profile', 'company', 'education', 'awards', 'publications'
-    ]
-  };
-  // Build queries
-  function buildQueries(fullName) {
-    const quoted = '"' + fullName + '"';
-    const picks = {
-      'flagged-en': [],
-      'flagged-hu': [],
-      'flagged-ro': [],
-      'discovery': []
-    };
-    Object.keys(keywords).forEach(function(grp) {
-      const arr = keywords[grp];
-      arr.forEach(function(label) {
-        if (grp === 'discovery') picks['discovery'].push(label);
-        else if (grp === 'flagged-en') picks['flagged-en'].push(label);
-        else if (grp === 'flagged-hu') picks['flagged-hu'].push(label);
-        else if (grp === 'flagged-ro') picks['flagged-ro'].push(label);
-      });
-    });
-    const cooccurrence = []
-      .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
-      .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
-      .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
-    const discovery = picks['discovery'].map(k => quoted + ' ' + k);
-    return { cooccurrence, discovery, standalone: [quoted] };
-  }
-  // Planned searches view
-  function renderPlanned(qs) {
-    function makeList(title, arr) {
-      return '<div class="row"><strong>' + title + ':</strong> ' +
-        arr.map(q => '<code>' + q + '</code>').join(' · ') +
-        '</div>';
-    }
-    plannedEl.innerHTML =
-      makeList('Co-occurrence', qs.cooccurrence) +
-      makeList('Discovery', qs.discovery) +
-      makeList('Standalone', qs.standalone);
-  }
-  // Netlify proxy call
-  async function braveSearch(q) {
-    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    return data.items || [];
-  }
-  // Throttle
-  function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-  // Run
-  async function onRun() {
-    const fullName = nameInput.value.trim();
-    if (!fullName) { alert('Type a full name first.'); return; }
-    const queries = buildQueries(fullName);
-    renderPlanned(queries);
-    resultsEl.innerHTML = 'Searching...';
-    const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
-    const sections = []
-    for (const q of allQueries) {
-      try {
-        const items = await braveSearch(q);
-        sections.push({ q, items });
-      } catch (err) {
-        sections.push({ q, items: [], error: String(err) });
-      }
-      await wait(1000); // 1 req/sec
-    }
-    resultsEl.innerHTML = sections.map(function (sec) {
-      const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
-      if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
-      if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
-      const list = sec.items.map(function (it) {
-        return '<div class="row">' +
-          '<a href="' + it.url + '" target="_blank" rel="noopener">' + it.title + '</a>' +
-          '<div class="muted">' + it.snippet + '</div>' +
-        '</div>';
-      }).join('');
-      return header + list;
-    }).join('');
-  }
-  // Events
-  nameInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') onRun();
-  });
-  runBtn.addEventListener('click', onRun);
-  </script>
-  
   <h2>Keyword Reference</h2>
-  
-  <!-- Show All/Hide All buttons -->
-  <div class="show-hide-buttons">
-    <button onclick="showAllDropdowns()">Show All</button>
-    <button onclick="hideAllDropdowns()">Hide All</button>
+  <div class="controls">
+    <button id="showAll">Show All</button>
+    <button id="hideAll">Hide All</button>
   </div>
-  
-  <!-- Dropdowns for keywords with English open by default -->
-  <div class="keyword-dropdown">
-    <div class="dropdown-header">
-      <button onclick="toggleDropdown('en')">English Keywords</button>
+  <div class="keyword-section">
+    <div class="section-header">
+      <h3>English Keywords</h3>
+      <div class="section-actions">
+        <button class="select-all" data-lang="en">Select All</button>
+        <button class="clear-all" data-lang="en">Clear</button>
+      </div>
     </div>
-    <div class="dropdown-content show" id="dropdown-en">
-      fraud, scam, convicted, arrested, lawsuit, bankrupt, complaint, investigation, criminal, charges
-    </div>
-  </div>
-  
-  <div class="keyword-dropdown">
-    <div class="dropdown-header">
-      <button onclick="toggleDropdown('hu')">Hungarian Keywords</button>
-    </div>
-    <div class="dropdown-content" id="dropdown-hu">
-      csalás, átverés, elítélték, letartóztatták, per, csőd, panasz, vizsgálat, bűnöző, vádak
-    </div>
-  </div>
-  
-  <div class="keyword-dropdown">
-    <div class="dropdown-header">
-      <button onclick="toggleDropdown('ro')">Romanian Keywords</button>
-    </div>
-    <div class="dropdown-content" id="dropdown-ro">
-      fraudă, înșelătorie, condamnat, arestat, proces, faliment, plângere, investigație, infracțional, acuzații
+    <div class="section-body show">
+      <div class="checkbox-grid">
+        <label><input type="checkbox" data-lang="en" value="fraud"> fraud</label>
+        <label><input type="checkbox" data-lang="en" value="scam"> scam</label>
+        <label><input type="checkbox" data-lang="en" value="convicted"> convicted</label>
+        <label><input type="checkbox" data-lang="en" value="arrested"> arrested</label>
+        <label><input type="checkbox" data-lang="en" value="lawsuit"> lawsuit</label>
+        <label><input type="checkbox" data-lang="en" value="bankrupt"> bankrupt</label>
+        <label><input type="checkbox" data-lang="en" value="complaint"> complaint</label>
+        <label><input type="checkbox" data-lang="en" value="investigation"> investigation</label>
+        <label><input type="checkbox" data-lang="en" value="criminal"> criminal</label>
+        <label><input type="checkbox" data-lang="en" value="charges"> charges</label>
+      </div>
     </div>
   </div>
-  
+  <div class="keyword-section">
+    <div class="section-header">
+      <h3>Hungarian Keywords</h3>
+      <div class="section-actions">
+        <button class="select-all" data-lang="hu">Select All</button>
+        <button class="clear-all" data-lang="hu">Clear</button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="checkbox-grid">
+        <label><input type="checkbox" data-lang="hu" value="csalás"> csalás</label>
+        <label><input type="checkbox" data-lang="hu" value="átverés"> átverés</label>
+        <label><input type="checkbox" data-lang="hu" value="elítélték"> elítélték</label>
+        <label><input type="checkbox" data-lang="hu" value="letartóztatták"> letartóztatták</label>
+        <label><input type="checkbox" data-lang="hu" value="per"> per</label>
+        <label><input type="checkbox" data-lang="hu" value="csőd"> csőd</label>
+        <label><input type="checkbox" data-lang="hu" value="panasz"> panasz</label>
+        <label><input type="checkbox" data-lang="hu" value="vizsgálat"> vizsgálat</label>
+        <label><input type="checkbox" data-lang="hu" value="bűnöző"> bűnöző</label>
+        <label><input type="checkbox" data-lang="hu" value="vádak"> vádak</label>
+      </div>
+    </div>
+  </div>
+  <div class="keyword-section">
+    <div class="section-header">
+      <h3>Romanian Keywords</h3>
+      <div class="section-actions">
+        <button class="select-all" data-lang="ro">Select All</button>
+        <button class="clear-all" data-lang="ro">Clear</button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="checkbox-grid">
+        <label><input type="checkbox" data-lang="ro" value="fraudă"> fraudă</label>
+        <label><input type="checkbox" data-lang="ro" value="înșelătorie"> înșelătorie</label>
+        <label><input type="checkbox" data-lang="ro" value="condamnat"> condamnat</label>
+        <label><input type="checkbox" data-lang="ro" value="arestat"> arestat</label>
+        <label><input type="checkbox" data-lang="ro" value="proces"> proces</label>
+        <label><input type="checkbox" data-lang="ro" value="faliment"> faliment</label>
+        <label><input type="checkbox" data-lang="ro" value="plângere"> plângere</label>
+        <label><input type="checkbox" data-lang="ro" value="investigație"> investigație</label>
+        <label><input type="checkbox" data-lang="ro" value="infracțional"> infracțional</label>
+        <label><input type="checkbox" data-lang="ro" value="acuzații"> acuzații</label>
+      </div>
+    </div>
+  </div>
   <script>
-  function toggleDropdown(lang) {
-    const el = document.getElementById('dropdown-' + lang);
-    el.classList.toggle('show');
-  }
-  
-  function showAllDropdowns() {
-    ['en', 'hu', 'ro'].forEach(function(lang) {
-      document.getElementById('dropdown-' + lang).classList.add('show');
-    });
-  }
-  
-  function hideAllDropdowns() {
-    ['en', 'hu', 'ro'].forEach(function(lang) {
-      document.getElementById('dropdown-' + lang).classList.remove('show');
-    });
-  }
+    const nameInput=document.getElementById('nameInput'),runBtn=document.getElementById('runBtn'),plannedEl=document.getElementById('planned'),resultsEl=document.getElementById('results'),themeToggle=document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click',()=>document.body.classList.toggle('dark-mode'));
+    const staticKeywords={'flagged-en':['fraud','scam','convicted','arrested','lawsuit','bankrupt','complaint','investigation','criminal','charges'],'flagged-hu':['csalás','átverés','elítélték','letartóztatták','per','csőd','panasz','vizsgálat','bűnöző','vádak'],'flagged-ro':['fraudă','înșelătorie','condamnat','arestat','proces','faliment','plângere','investigație','infracțional','acuzații'],'discovery':['LinkedIn','Facebook','Twitter','Instagram','biography','profile','company','education','awards','publications']};
+    function getChecked(){const s={'flagged-en':[],'flagged-hu':[],'flagged-ro':[]};document.querySelectorAll('input[type="checkbox"][data-lang]').forEach(cb=>{if(cb.checked){const l=cb.getAttribute('data-lang');if(l==='en')s['flagged-en'].push(cb.value);if(l==='hu')s['flagged-hu'].push(cb.value);if(l==='ro')s['flagged-ro'].push(cb.value)}});return s}
+    function buildQueries(n){const q='"'+n+'"',p=getChecked(),u={'flagged-en':p['flagged-en'].length?p['flagged-en']:staticKeywords['flagged-en'],'flagged-hu':p['flagged-hu'].length?p['flagged-hu']:staticKeywords['flagged-hu'],'flagged-ro':p['flagged-ro'].length?p['flagged-ro']:staticKeywords['flagged-ro'],'discovery':staticKeywords['discovery']},c=[].concat(u['flagged-en'].map(k=>q+' "'+k+'"')).concat(u['flagged-hu'].map(k=>q+' "'+k+'"')).concat(u['flagged-ro'].map(k=>q+' "'+k+'"')),d=u['discovery'].map(k=>q+' '+k);return{cooccurrence:c,discovery:d,standalone:[q]}}
+    function renderPlanned(qs){function ml(t,a){return'<div class="row"><strong>'+t+':</strong> '+a.map(q=>'<code>'+q+'</code>').join(' · ')+'</div>'}plannedEl.innerHTML=ml('Co-occurrence',qs.cooccurrence)+ml('Discovery',qs.discovery)+ml('Standalone',qs.standalone)}
+    async function braveSearch(q){const r=await fetch('/api/search?q='+encodeURIComponent(q));if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();return d.items||[]}
+    function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+    async function onRun(){const fn=nameInput.value.trim();if(!fn){alert('Type a full name first.');return}const qs=buildQueries(fn);renderPlanned(qs);resultsEl.innerHTML='Searching...';const all=[].concat(qs.cooccurrence,qs.discovery,qs.standalone),secs=[];for(const q of all){try{const items=await braveSearch(q);secs.push({q,items})}catch(err){secs.push({q,items:[],error:String(err))}}await wait(1000)}resultsEl.innerHTML=secs.map(s=>{const h='<div class="row"><strong>Query:</strong> <code>'+s.q+'</code></div>';if(s.error)return h+'<div class="row muted">Error: '+s.error+'</div>';if(!s.items.length)return h+'<div class="row muted">No results.</div>';const l=s.items.map(it=>'<div class="row"><a href="'+it.url+'" target="_blank" rel="noopener">'+it.title+'</a><div class="muted">'+it.snippet+'</div></div>').join('');return h+l}).join('')}
+    nameInput.addEventListener('keydown',e=>{if(e.key==='Enter')onRun()});
+    runBtn.addEventListener('click',onRun);
+    document.querySelectorAll('.keyword-section .section-header').forEach(h=>h.addEventListener('click',e=>{if(e.target.closest('button'))return;const b=h.parentElement.querySelector('.section-body');b.classList.toggle('show')}));
+    function setLang(l,c){document.querySelectorAll('input[type="checkbox"][data-lang="'+l+'"]').forEach(cb=>cb.checked=c)}
+    document.querySelectorAll('.select-all').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setLang(b.getAttribute('data-lang'),true)}));
+    document.querySelectorAll('.clear-all').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setLang(b.getAttribute('data-lang'),false)}));
+    document.getElementById('showAll').addEventListener('click',()=>document.querySelectorAll('.section-body').forEach(sb=>sb.classList.add('show')));
+    document.getElementById('hideAll').addEventListener('click',()=>document.querySelectorAll('.section-body').forEach(sb=>sb.classList.remove('show')));
   </script>
 </body>
 </html>

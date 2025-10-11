@@ -97,9 +97,30 @@
       margin-top: 4px;
     }
     /* Dropdown style for language keyword lists */
-    .keyword-dropdown {margin-bottom: 1em;}
-    .dropdown-content {display: none; margin-top: 0.5em;}
-    .dropdown-content.show {display: block;}
+    .keyword-dropdown {
+      margin-bottom: 1em;
+    }
+    .dropdown-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.5em;
+    }
+    .dropdown-content {
+      display: none;
+      margin-top: 0.5em;
+      padding: 10px;
+      background: var(--code-bg);
+      border-radius: 4px;
+    }
+    .dropdown-content.show {
+      display: block;
+    }
+    .show-hide-buttons {
+      margin-bottom: 1em;
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -111,19 +132,16 @@
   </div>
   <div id="planned"></div>
   <div id="results"></div>
-
   <script>
   const nameInput = document.getElementById('nameInput');
   const runBtn = document.getElementById('runBtn');
   const plannedEl = document.getElementById('planned');
   const resultsEl = document.getElementById('results');
   const themeToggle = document.getElementById('theme-toggle');
-
   // Dark mode toggle
   themeToggle.addEventListener('click', function() {
     document.body.classList.toggle('dark-mode');
   });
-
   // Keywords by language
   const keywords = {
     'flagged-en': [
@@ -143,7 +161,6 @@
       'profile', 'company', 'education', 'awards', 'publications'
     ]
   };
-
   // Build queries
   function buildQueries(fullName) {
     const quoted = '"' + fullName + '"';
@@ -169,7 +186,6 @@
     const discovery = picks['discovery'].map(k => quoted + ' ' + k);
     return { cooccurrence, discovery, standalone: [quoted] };
   }
-
   // Planned searches view
   function renderPlanned(qs) {
     function makeList(title, arr) {
@@ -182,7 +198,6 @@
       makeList('Discovery', qs.discovery) +
       makeList('Standalone', qs.standalone);
   }
-
   // Netlify proxy call
   async function braveSearch(q) {
     const res = await fetch('/api/search?q=' + encodeURIComponent(q));
@@ -190,10 +205,8 @@
     const data = await res.json();
     return data.items || [];
   }
-
   // Throttle
   function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
   // Run
   async function onRun() {
     const fullName = nameInput.value.trim();
@@ -202,7 +215,7 @@
     renderPlanned(queries);
     resultsEl.innerHTML = 'Searching...';
     const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
-    const sections = [];
+    const sections = []
     for (const q of allQueries) {
       try {
         const items = await braveSearch(q);
@@ -225,49 +238,64 @@
       return header + list;
     }).join('');
   }
-
   // Events
   nameInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') onRun();
   });
   runBtn.addEventListener('click', onRun);
   </script>
-
-  <!-- Dropdown style for language keyword lists -->
-  <style>
-    .keyword-dropdown {margin-bottom: 1em;}
-    .dropdown-content {display: none; margin-top: 0.5em;}
-    .dropdown-content.show {display: block;}
-  </style>
-
+  
+  <h2>Keyword Reference</h2>
+  
+  <!-- Show All/Hide All buttons -->
+  <div class="show-hide-buttons">
+    <button onclick="showAllDropdowns()">Show All</button>
+    <button onclick="hideAllDropdowns()">Hide All</button>
+  </div>
+  
   <!-- Dropdowns for keywords with English open by default -->
   <div class="keyword-dropdown">
-    <button onclick="toggleDropdown('en')">English Keywords</button>
-    <div id="dropdown-en" class="dropdown-content show">
-      <code>fraud, scam, convicted, arrested, lawsuit, bankrupt, complaint, investigation, criminal, charges</code>
+    <div class="dropdown-header">
+      <button onclick="toggleDropdown('en')">English Keywords</button>
+    </div>
+    <div class="dropdown-content show" id="dropdown-en">
+      fraud, scam, convicted, arrested, lawsuit, bankrupt, complaint, investigation, criminal, charges
     </div>
   </div>
+  
   <div class="keyword-dropdown">
-    <button onclick="toggleDropdown('hu')">Hungarian Keywords</button>
-    <div id="dropdown-hu" class="dropdown-content">
-      <code>csalás, átverés, elítélték, letartóztatták, per, csőd, panasz, vizsgálat, bűnöző, vádak</code>
+    <div class="dropdown-header">
+      <button onclick="toggleDropdown('hu')">Hungarian Keywords</button>
+    </div>
+    <div class="dropdown-content" id="dropdown-hu">
+      csalás, átverés, elítélték, letartóztatták, per, csőd, panasz, vizsgálat, bűnöző, vádak
     </div>
   </div>
+  
   <div class="keyword-dropdown">
-    <button onclick="toggleDropdown('ro')">Romanian Keywords</button>
-    <div id="dropdown-ro" class="dropdown-content">
-      <code>fraudă, înșelătorie, condamnat, arestat, proces, faliment, plângere, investigație, infracțional, acuzații</code>
+    <div class="dropdown-header">
+      <button onclick="toggleDropdown('ro')">Romanian Keywords</button>
+    </div>
+    <div class="dropdown-content" id="dropdown-ro">
+      fraudă, înșelătorie, condamnat, arestat, proces, faliment, plângere, investigație, infracțional, acuzații
     </div>
   </div>
+  
   <script>
   function toggleDropdown(lang) {
-    ['en', 'hu', 'ro'].forEach(function(l) {
-      const el = document.getElementById('dropdown-' + l);
-      if (l === lang) {
-        el.classList.toggle('show');
-      } else {
-        el.classList.remove('show');
-      }
+    const el = document.getElementById('dropdown-' + lang);
+    el.classList.toggle('show');
+  }
+  
+  function showAllDropdowns() {
+    ['en', 'hu', 'ro'].forEach(function(lang) {
+      document.getElementById('dropdown-' + lang).classList.add('show');
+    });
+  }
+  
+  function hideAllDropdowns() {
+    ['en', 'hu', 'ro'].forEach(function(lang) {
+      document.getElementById('dropdown-' + lang).classList.remove('show');
     });
   }
   </script>

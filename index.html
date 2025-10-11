@@ -1,8 +1,9 @@
+Github dropdown V2
 <!DOCTYPE html>
-<html lang="en">
-<head>
+
+
   <meta charset="utf-8"/>
-  <title>Background Check (Beta)</title>
+  Background Check (Beta)
   <meta content="width=device-width,initial-scale=1" name="viewport"/>
   <style>
     :root {
@@ -50,167 +51,230 @@
     input[type="text"] {
       flex: 1;
       padding: 12px;
-      border: 1px solid var(--input-border);
-      border-radius: 4px;
+      font-size: 16px;
       background-color: var(--input-bg);
       color: var(--text-color);
-      font-size: 16px;
+      border: 1px solid var(--input-border);
     }
     button {
-      padding: 12px 20px;
-      border: 1px solid var(--input-border);
-      border-radius: 4px;
+      padding: 12px 16px;
+      font-size: 16px;
       cursor: pointer;
       background-color: var(--input-bg);
       color: var(--text-color);
-      font-size: 16px;
+      border: 1px solid var(--input-border);
     }
     button:hover { opacity: 0.8; }
-    #planned, #results { margin-top: 24px; }
-    .row { margin: 8px 0; }
-    a { color: #0969da; text-decoration: underline; }
-    body.dark-mode a { color: #58a6ff; }
-    code {
-      background: var(--code-bg);
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-size: 14px;
-    }
     .muted { color: var(--muted-color); font-size: 14px; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
-    .group { border: 1px solid var(--border-color); padding: 16px; border-radius: 4px; }
-    .group-title { font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .master-checkbox { margin: 0; cursor: pointer; }
-    label { display: flex; align-items: center; gap: 6px; margin: 6px 0; cursor: pointer; user-select: none; }
-    input[type="checkbox"] { margin: 0; cursor: pointer; }
+    .section { margin-top: 24px; }
+    .row { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .status { margin-top: 8px; }
+    code { background: var(--code-bg); padding: 2px 4px; }
+    .group-title { font-weight: 600; margin: 12px 0 8px; display:flex; align-items:center; gap:12px; cursor: pointer; user-select: none; }
+    .group-title .title-text { cursor: pointer; }
+    .group-title .master-wrap { display:flex; align-items:center; gap:6px; cursor: default; }
+    .checkboxes label { margin: 4px 12px 4px 0; display: inline-block; }
+    .group-wrap { margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; }
+    .group-body { display: none; margin-top: 8px; }
+    .group-body.show { display: block; }
   </style>
-</head>
-<body>
-  <button id="theme-toggle">🌓 Toggle Theme</button>
-  <h1>🔎 Background Check (Beta)</h1>
+  <button id="theme-toggle">🌙 Dark Mode</button>
+  Background Check (Beta)
   <div id="box">
-    <input id="name" placeholder="Enter a full name" type="text"/>
-    <button id="run">Run</button>
+    <input autocomplete="off" id="nameInput" placeholder="Enter educator name..." type="text"/>
+    <button id="runBtn">Run Check</button>
   </div>
-  <div id="planned"></div>
-  <div id="results"></div>
+  <div class="muted">Press Enter or click Run Check to build searches for the name with selected keywords.</div>
+  <div class="section">
+    Filters
+    <div class="checkboxes" id="filters"></div>
+  </div>
+  <div class="section">
+    Planned searches
+    <div id="planned"></div>
+  </div>
+  <div class="section">
+    Results
+    <div class="status muted" id="results">No searches run yet.</div>
+  </div>
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const nameInput = document.getElementById('name');
-    const runBtn = document.getElementById('run');
-    const plannedEl = document.getElementById('planned');
-    const resultsEl = document.getElementById('results');
-
-    // Dark mode toggle
+  document.addEventListener('DOMContentLoaded', function () {
+    // Theme toggle functionality
     const themeToggle = document.getElementById('theme-toggle');
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    if (savedTheme === 'dark') document.body.classList.add('dark-mode');
+    const body = document.body;
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+      body.classList.add('dark-mode');
+      themeToggle.textContent = '☀️ Light Mode';
+    }
     themeToggle.addEventListener('click', function() {
-      document.body.classList.toggle('dark-mode');
-      localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+      body.classList.toggle('dark-mode');
+      if (body.classList.contains('dark-mode')) {
+        themeToggle.textContent = '☀️ Light Mode';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        themeToggle.textContent = '🌙 Dark Mode';
+        localStorage.setItem('theme', 'light');
+      }
     });
 
-    // Build query arrays
-    function buildQueries(fullName) {
-      return {
-        cooccurrence: {
-          'flagged-en': [
-            `"${fullName}" site:bbc.co.uk OR site:theguardian.com OR site:reuters.com OR site:apnews.com`,
-            `"${fullName}" (fraud OR scam OR lawsuit OR convicted OR arrested OR charged)`,
-            `"${fullName}" (CEO OR founder OR executive OR director)`
-          ],
-          'flagged-hu': [
-            `"${fullName}" site:24.hu OR site:index.hu OR site:444.hu`,
-            `"${fullName}" (csalás OR per OR ítélet OR vád OR letartóztatás)`,
-            `"${fullName}" (vezérigazgató OR alapító OR ügyvezető OR igazgató)`
-          ],
-          'flagged-ro': [
-            `"${fullName}" site:hotnews.ro OR site:digi24.ro OR site:libertatea.ro`,
-            `"${fullName}" (fraudă OR proces OR condamnat OR acuzat OR arestat)`,
-            `"${fullName}" (CEO OR fondator OR director OR executiv)`
-          ]
-        },
-        discovery: [
-          `"${fullName}"`,
-          `"${fullName}" LinkedIn`,
-          `"${fullName}" biography`,
-          `"${fullName}" news`
-        ],
-        standalone: [
-          `"${fullName}" Wikipedia`,
-          `site:linkedin.com/in "${fullName}"`,
-          `site:crunchbase.com "${fullName}"`
-        ]
-      };
+    // Co‑occurrence keyword sets by language
+    const FLAGGED_EN = [
+      'MCC','Mathias Corvinus Collegium','politics','policy','education','teaching','research','conference','conference speech','keynote speech',
+      'presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'
+    ];
+    const FLAGGED_HU = [
+      'MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás',
+      'előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'
+    ];
+    const FLAGGED_RO = [
+      'MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal',
+      'prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'
+    ];
+
+    // Discovery sources
+    const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
+
+    // DOM
+    const nameInput = document.getElementById('nameInput');
+    const runBtn = document.getElementById('runBtn');
+    const filtersEl = document.getElementById('filters');
+    const plannedEl = document.getElementById('planned');
+    const resultsEl = document.getElementById('results');
+    if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl) {
+      console.warn('Inputs not found in DOM.');
+      return;
     }
 
-    // Master checkbox utilities
-    function setupMaster(groupKey) {
-      const master = document.getElementById('master-' + groupKey);
-      const children = Array.from(document.querySelectorAll('input[data-group="' + groupKey + '"]'));
-      if (!master || children.length === 0) return;
-      master.addEventListener('change', function() {
-        const checked = master.checked;
-        children.forEach(function(ch) { ch.checked = checked; });
-      });
-      children.forEach(function(ch) {
-        ch.addEventListener('change', function() {
-          updateMasterFromChildren(groupKey);
-        });
-      });
+    // Render a row with master checkbox and children
+    function renderGroup(title, key, items) {
+      const children = items.map(function (label, i) {
+        return '<label><input type="checkbox" class="flt" data-group="' + key + '" data-index="' + i + '" checked> ' + label + '</label>';
+      }).join('');
+      const masterId = 'master-' + key;
+      return [
+        '<div class="row group-wrap" data-group-wrap="' + key + '">',
+          '<div class="group-title" data-group="' + key + '">',
+            '<span class="title-text">' + title + '</span>',
+            // master checkbox lives next to title text
+            '<label class="master-wrap"><input type="checkbox" class="master" id="' + masterId + '" data-master="' + key + '" checked> All</label>',
+          '</div>',
+          '<div class="group-body show" data-body="' + key + '">' + children + '</div>',
+        '</div>'
+      ].join('');
     }
 
-    function updateMasterFromChildren(groupKey) {
-      const master = document.getElementById('master-' + groupKey);
-      const children = Array.from(document.querySelectorAll('input[data-group="' + groupKey + '"]'));
-      if (!master || children.length === 0) return;
-      const checkedCount = children.filter(function(ch) { return ch.checked; }).length;
-      if (checkedCount === 0) {
-        master.checked = false;
-        master.indeterminate = false;
-      } else if (checkedCount === children.length) {
-        master.checked = true;
-        master.indeterminate = false;
-      } else {
-        master.checked = false;
-        master.indeterminate = true;
-      }
-    }
+    // Render all rows
+    function renderFilters() {
+      filtersEl.innerHTML =
+        renderGroup('▼ Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
+        renderGroup('▼ Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
+        renderGroup('▼ Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
+        renderGroup('Discovery sources', 'discovery', DISCOVERY) +
+        '<div class="muted">Uncheck any items to exclude before running. Click on group titles to collapse/expand.</div>';
 
-    // Render planned queries
-    function renderPlanned(queries) {
-      function makeList(title, arr, groupKey) {
-        const hasGroup = typeof groupKey !== 'undefined';
-        const masterCheckbox = hasGroup
-          ? '<input type="checkbox" id="master-' + groupKey + '" class="master-checkbox" checked />'
-          : '';
-        const header = '<div class="group-title">' + masterCheckbox + title + '</div>';
-        const items = arr.map(function(q, i) {
-          const dataAttr = hasGroup ? ' data-group="' + groupKey + '"' : '';
-          return '<label><input type="checkbox" data-q="' + q + '"' + dataAttr + ' checked/>' + q + '</label>';
-        }).join('');
-        return '<div class="group">' + header + items + '</div>';
-      }
-      plannedEl.innerHTML = '<h2>Planned Queries</h2><div class="grid">'
-        + makeList('Co-occurrence (EN)', queries.cooccurrence['flagged-en'], 'flagged-en')
-        + makeList('Co-occurrence (HU)', queries.cooccurrence['flagged-hu'], 'flagged-hu')
-        + makeList('Co-occurrence (RO)', queries.cooccurrence['flagged-ro'], 'flagged-ro')
-        + '</div><div class="grid">'
-        + makeList('Discovery sources', queries.discovery, 'discovery')
-        + makeList('Standalone', queries.standalone)
-        + '</div>';
+      // Enable collapsible behavior (click only on the title text to avoid toggling when clicking checkboxes)
+      setupCollapsible('flagged-en');
+      setupCollapsible('flagged-hu');
+      setupCollapsible('flagged-ro');
+      setupCollapsible('discovery');
 
       // Wire up master checkbox behavior for co-occurrence groups
       setupMaster('flagged-en');
       setupMaster('flagged-hu');
       setupMaster('flagged-ro');
-      setupMaster('discovery');
 
       // Initialize indeterminate states after initial render
       updateMasterFromChildren('flagged-en');
       updateMasterFromChildren('flagged-hu');
       updateMasterFromChildren('flagged-ro');
-      updateMasterFromChildren('discovery');
+    }
+
+    // Collapsible logic
+    function setupCollapsible(groupKey) {
+      const header = filtersEl.querySelector('.group-title[data-group="' + groupKey + '"] .title-text');
+      const body = filtersEl.querySelector('.group-body[data-body="' + groupKey + '"]');
+      if (header && body) {
+        header.addEventListener('click', function() {
+          body.classList.toggle('show');
+        });
+      }
+    }
+
+    // Master checkbox handlers
+    function getMaster(groupKey) {
+      return filtersEl.querySelector('input.master[data-master="' + groupKey + '"]');
+    }
+    function getChildren(groupKey) {
+      return Array.from(filtersEl.querySelectorAll('input.flt[data-group="' + groupKey + '"]'));
+    }
+    function setAllChildren(groupKey, checked) {
+      getChildren(groupKey).forEach(cb => { cb.checked = checked; });
+    }
+    function updateMasterFromChildren(groupKey) {
+      const master = getMaster(groupKey);
+      if (!master) return;
+      const children = getChildren(groupKey);
+      const total = children.length;
+      const checkedCount = children.filter(cb => cb.checked).length;
+      master.indeterminate = checkedCount > 0 && checkedCount < total;
+      master.checked = checkedCount === total;
+    }
+    function setupMaster(groupKey) {
+      const master = getMaster(groupKey);
+      const children = getChildren(groupKey);
+      if (!master) return;
+      // Clicking master toggles all children
+      master.addEventListener('change', function() {
+        setAllChildren(groupKey, master.checked);
+        // After setting, ensure master state is not indeterminate
+        master.indeterminate = false;
+      });
+      // Children update master on change
+      children.forEach(cb => {
+        cb.addEventListener('change', function() {
+          updateMasterFromChildren(groupKey);
+        });
+      });
+    }
+
+    // Initial render
+    renderFilters();
+
+    // Build queries from all rows
+    function buildQueries(fullName) {
+      const quoted = '"' + fullName.trim() + '"';
+      const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
+      // Read checked labels directly from DOM (keeps Part 3 decoupled)
+      filtersEl.querySelectorAll('input.flt').forEach(function (box) {
+        if (!box.checked) return;
+        const grp = box.getAttribute('data-group');
+        const label = (box.parentElement ? box.parentElement.textContent : '').trim();
+        if (!label) return;
+        if (grp === 'discovery') picks['discovery'].push(label);
+        else if (grp === 'flagged-en') picks['flagged-en'].push(label);
+        else if (grp === 'flagged-hu') picks['flagged-hu'].push(label);
+        else if (grp === 'flagged-ro') picks['flagged-ro'].push(label);
+      });
+      const cooccurrence = []
+        .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
+        .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
+        .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
+      const discovery = picks['discovery'].map(k => quoted + ' ' + k);
+      return { cooccurrence, discovery, standalone: [quoted] };
+    }
+
+    // Planned searches view
+    function renderPlanned(qs) {
+      function makeList(title, arr) {
+        return '<div class="row"><strong>' + title + ':</strong> '
+          + arr.map(q => '<code>' + q + '</code>').join(' · ')
+          + '</div>';
+      }
+      plannedEl.innerHTML =
+        makeList('Co-occurrence', qs.cooccurrence) +
+        makeList('Discovery', qs.discovery) +
+        makeList('Standalone', qs.standalone);
     }
 
     // Netlify proxy call
@@ -243,12 +307,12 @@
         await wait(1000); // 1 req/sec
       }
       resultsEl.innerHTML = sections.map(function (sec) {
-        const header = '<div class="row">Query: <code>' + sec.q + '</code></div>';
+        const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
         if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
         if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
         const list = sec.items.map(function (it) {
           return '<div class="row">'
-            + '<a href="' + it.url + '" target="_blank" rel="noopener">' + it.title + '</a>'
+            + '<a href="' + it.link + '" target="_blank" rel="noopener">' + it.title + '</a>'
             + '<div class="muted">' + it.snippet + '</div>'
           + '</div>';
         }).join('');
@@ -263,5 +327,3 @@
     runBtn.addEventListener('click', onRun);
   });
   </script>
-</body>
-</html>

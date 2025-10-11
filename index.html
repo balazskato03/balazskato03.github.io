@@ -158,9 +158,9 @@
     // Render all rows
     function renderFilters() {
       filtersEl.innerHTML =
-        renderGroup('Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
-        renderGroup('Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
-        renderGroup('Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
+        renderGroup('▼ Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
+        renderGroup('▼ Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
+        renderGroup('▼ Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
         renderGroup('Discovery sources', 'discovery', DISCOVERY) +
         '<div class="muted">Uncheck any items to exclude before running. Click on group titles to collapse/expand.</div>';
       // Enable collapsible behavior
@@ -232,7 +232,7 @@
       renderPlanned(queries);
       resultsEl.innerHTML = 'Searching...';
       const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
-      const sections = [];
+      const sections = []
       for (const q of allQueries) {
         try {
           const items = await braveSearch(q);

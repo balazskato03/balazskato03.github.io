@@ -236,28 +236,44 @@ document.addEventListener('DOMContentLoaded', function () {
   nameInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') onRun(); });
   runBtn.addEventListener('click', onRun);
 
-  // CSV export logic
+  // ---- NEW CSV Export logic ----
+  function getWebsiteName(url) {
+    try { return (new URL(url)).hostname.replace(/^www\./, ''); }
+    catch (e) { return url; }
+  }
+  function getKeyword(q) {
+    // Tries to get the last quoted substring or last word after the educator name
+    let keyword = '';
+    let matches = q.match(/"[^"]+"\s+"([^"]+)"$/); // "Name" "Keyword"
+    if (matches) {
+      keyword = matches[1].trim();
+    } else {
+      // Try for formats like: '"Name" ResearchGate' (no quotes around keyword)
+      let parts = q.replace(/^"[^"]+"/, '').trim().split(' ');
+      keyword = parts.length ? parts[parts.length-1] : q;
+    }
+    return keyword;
+  }
+  function buildCsvRows() {
+    const rows = [];
+    rows.push(['website', 'keyword', 'url']);
+    latestSections.forEach(sec => {
+      const keyword = getKeyword(sec.q);
+      (sec.items || []).forEach(it => {
+        const url = it.url || it.link || it.href || '';
+        rows.push([
+          getWebsiteName(url),
+          keyword,
+          url
+        ]);
+      });
+    });
+    return rows;
+  }
   function csvEscape(val) {
     const s = String(val ?? '').replace(/\r?\n|\r/g, ' ').trim();
     if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
-  }
-  function buildCsvRows() {
-    const rows = [];
-    rows.push(['query','title','url','snippet']);
-    latestSections.forEach(sec => {
-      if (sec.error) { rows.push([sec.q, 'ERROR', '', sec.error]); return; }
-      (sec.items || []).forEach(it => {
-        const title = it.title || '';
-        const url = it.url || it.link || it.href || '';
-        const snippet = it.snippet || it.description || '';
-        rows.push([sec.q, title, url, snippet]);
-      });
-      if (!sec.items || !sec.items.length) {
-        rows.push([sec.q, '(no results)', '', '']);
-      }
-    });
-    return rows;
   }
   function triggerCsvDownload(filename, rows) {
     const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
@@ -278,8 +294,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     const rows = buildCsvRows();
-    const stamp = new Date().toISOString().replace(/[:.]/g,'-');
-    triggerCsvDownload('background-check-results-' + stamp + '.csv', rows);
+    // Get educator name from input, replace forbidden chars
+    let educator = (nameInput.value || '').trim();
+    if (!educator) educator = 'Unknown';
+    educator = educator.replace(/[/\\?%*:|"<>]/g, '-');
+    const filename = educator + '_Background Check.csv';
+    triggerCsvDownload(filename, rows);
   });
 });
 </script>

@@ -12,7 +12,7 @@
     h1{font-size:20px;margin-bottom:16px;} h2{margin-top:32px;font-size:18px;}
     #box{display:flex;gap:8px;} input[type=text]{flex:1;padding:12px;font-size:16px;background:var(--input-bg);color:var(--text-color);border:1px solid var(--input-border);} button{padding:12px 16px;font-size:16px;cursor:pointer;background:var(--input-bg);color:var(--text-color);border:1px solid var(--input-border);} button:hover{opacity:.8}
     .muted{color:var(--muted-color);font-size:14px;} .section{margin-top:24px;} .row{padding:8px 0;border-bottom:1px solid var(--border-color);} .status{margin-top:8px;} code{background:var(--code-bg);padding:2px 4px;}
-    .group-title{font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+    .group-title{font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:12px;user-select:none;}
     .group-title .title-text{cursor:pointer;} .group-title .master-wrap{display:flex;align-items:center;gap:6px;cursor:default;}
     .checkboxes label{margin:4px 12px 4px 0;display:inline-block;}
     .group-wrap{margin-bottom:8px;border:1px solid var(--border-color);border-radius:6px;padding:12px;}
@@ -41,6 +41,7 @@
   <div class="section">
     Results
     <div class="status muted" id="results">No searches run yet.</div>
+    <!-- CSV Export Button -->
     <div style="margin-top:8px">
       <button id="exportCsvBtn" title="Export visible results to CSV">Export Results as CSV</button>
     </div>
@@ -48,6 +49,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  // Theme toggle
   const themeToggle = document.getElementById('theme-toggle');
   const body = document.body;
   const currentTheme = localStorage.getItem('theme') || 'light';
@@ -58,11 +60,13 @@ document.addEventListener('DOMContentLoaded', function () {
     else { themeToggle.textContent = '🌙 Dark Mode'; localStorage.setItem('theme','light'); }
   });
 
+  // Data
   const FLAGGED_EN = ['MCC','Mathias Corvinus Collegium','politics','policy','education','teaching','research','conference','conference speech','keynote speech','presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'];
   const FLAGGED_HU = ['MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás','előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'];
   const FLAGGED_RO = ['MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal','prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'];
   const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
 
+  // DOM
   const nameInput = document.getElementById('nameInput');
   const runBtn = document.getElementById('runBtn');
   const filtersEl = document.getElementById('filters');
@@ -71,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const exportBtn = document.getElementById('exportCsvBtn');
   if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl || !exportBtn) { console.warn('Inputs not found in DOM.'); return; }
 
+  // Collapsible (for language groups only)
   function renderGroup(title, key, items){
     const children = items.map((label,i)=>`<label><input type="checkbox" class="flt" data-group="${key}" data-index="${i}" checked> ${label}</label>`).join('');
     const masterId = 'master-' + key;
@@ -84,6 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
       `</div>`
     ].join('');
   }
+
+  // Discovery: ALWAYS visible, not collapsible
   function renderDiscovery(title, key, items){
     const children = items.map((label,i)=>`<label><input type="checkbox" class="flt" data-group="${key}" data-index="${i}" checked> ${label}</label>`).join('');
     const masterId = 'master-' + key;
@@ -97,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
       `</div>`
     ].join('');
   }
+
   function renderFilters(){
     filtersEl.innerHTML =
       renderGroup('▼ Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
@@ -104,23 +112,32 @@ document.addEventListener('DOMContentLoaded', function () {
       renderGroup('▼ Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
       renderDiscovery('Discovery sources', 'discovery', DISCOVERY) +
       '<div class="muted">Uncheck any items to exclude before running. Click on group titles to collapse/expand.</div>';
+
+    // Collapsible only for language groups
     setupCollapsible('flagged-en');
     setupCollapsible('flagged-hu');
     setupCollapsible('flagged-ro');
+    // Note: NO setupCollapsible('discovery') so it's never collapsible
+
+    // Master checkbox behavior for all groups
     setupMaster('flagged-en');
     setupMaster('flagged-hu');
     setupMaster('flagged-ro');
     setupMaster('discovery');
+
+    // Initialize states
     updateMasterFromChildren('flagged-en');
     updateMasterFromChildren('flagged-hu');
     updateMasterFromChildren('flagged-ro');
     updateMasterFromChildren('discovery');
   }
+
   function setupCollapsible(groupKey){
     const header = filtersEl.querySelector(`.group-title[data-group="${groupKey}"] .title-text`);
     const body = filtersEl.querySelector(`.group-body[data-body="${groupKey}"]`);
     if (header && body){ header.addEventListener('click', ()=> body.classList.toggle('show')); }
   }
+
   function getMaster(groupKey){ return filtersEl.querySelector(`input.master[data-master="${groupKey}"]`); }
   function getChildren(groupKey){ return Array.from(filtersEl.querySelectorAll(`input.flt[data-group="${groupKey}"]`)); }
   function setAllChildren(groupKey, checked){ getChildren(groupKey).forEach(cb=>{ cb.checked = checked; }); }
@@ -134,10 +151,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function setupMaster(groupKey){
     const master = getMaster(groupKey); const children = getChildren(groupKey);
     if (!master) return;
-    master.addEventListener('change', function(){ setAllChildren(groupKey, master.checked); master.indeterminate = false; updateMasterFromChildren(groupKey); });
+    master.addEventListener('change', function(){ setAllChildren(groupKey, master.checked); master.indeterminate = false; });
     children.forEach(cb=>{ cb.addEventListener('change', function(){ updateMasterFromChildren(groupKey); }); });
   }
+
+  // Initial render
   renderFilters();
+
+  // Build queries
   function buildQueries(fullName){
     const quoted = '"' + fullName.trim() + '"';
     const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
@@ -158,20 +179,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const discovery = picks['discovery'].map(k => quoted + ' ' + k);
     return { cooccurrence, discovery, standalone: [quoted] };
   }
+
+  // Planned searches view
   function renderPlanned(qs){
     function makeList(title, arr){
       return '<div class="row"><strong>' + title + ':</strong> ' + arr.map(q => '<code>' + q + '</code>').join(' · ') + '</div>';
     }
     plannedEl.innerHTML = makeList('Co-occurrence', qs.cooccurrence) + makeList('Discovery', qs.discovery) + makeList('Standalone', qs.standalone);
   }
+
+  // Netlify proxy call
   async function braveSearch(q){
     const res = await fetch('/api/search?q=' + encodeURIComponent(q));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     return data.items || [];
   }
+
   function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // Results export
   let latestSections = [];
+
+  // Run
   async function onRun(){
     const fullName = nameInput.value.trim();
     if (!fullName){ alert('Type a full name first.'); return; }
@@ -194,14 +224,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const url = (it.url || it.link || it.href || '');
         const title = (it.title || '');
         const snippet = (it.snippet || it.description || '');
-        return '<div class="row">' + '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>' + '<div class="muted">' + snippet + '</div>' + '</div>';
+        return '<div class="row">'
+          + '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>'
+          + '<div class="muted">' + snippet + '</div>'
+          + '</div>';
       }).join('');
       return header + list;
     }).join('');
   }
+
   nameInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') onRun(); });
   runBtn.addEventListener('click', onRun);
 
+  // CSV export logic
   function csvEscape(val) {
     const s = String(val ?? '').replace(/\r?\n|\r/g, ' ').trim();
     if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
@@ -229,4 +264,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  exportBtn.addEventListener('click', function(){
+    if (!latestSections || !latestSections.length) {
+      alert('No results to export yet. Run a check first.');
+      return;
+    }
+    const rows = buildCsvRows();
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+    triggerCsvDownload('background-check-results-' + stamp + '.csv', rows);
+  });
+});
+</script>
+</body>
+</html>

@@ -44,31 +44,6 @@
       border-radius: 4px;
       font-size: 14px;
     }
-    #title-changer {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      display: flex;
-      gap: 8px;
-      z-index: 10;
-    }
-    #title-input {
-      padding: 8px;
-      font-size: 14px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: var(--text-color);
-      border-radius: 4px;
-    }
-    #title-button {
-      padding: 8px 12px;
-      font-size: 14px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: var(--text-color);
-      border-radius: 4px;
-      cursor: pointer;
-    }
     h1 { font-size: 20px; margin-bottom: 16px; }
     h2 { margin-top: 32px; font-size: 18px; }
     #box { display: flex; gap: 8px; }
@@ -104,10 +79,6 @@
   </style>
 </head>
 <body>
-  <div id="title-changer">
-    <input id="title-input" type="text" placeholder="Change site title...">
-    <button id="title-button">Set Title</button>
-  </div>
   <button id="theme-toggle">🌙 Dark Mode</button>
   <h1 id="page-title">Background Check (Beta)</h1>
   <div id="box">
@@ -129,23 +100,6 @@
   </div>
   <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Title changer functionality
-    const titleInput = document.getElementById('title-input');
-    const titleButton = document.getElementById('title-button');
-    const pageTitle = document.getElementById('page-title');
-    titleButton.addEventListener('click', function () {
-      const newTitle = titleInput.value.trim();
-      if (newTitle) {
-        document.title = newTitle;
-        pageTitle.textContent = newTitle;
-      }
-    });
-    titleInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        titleButton.click();
-      }
-    });
-
     // Theme toggle functionality
     const themeToggle = document.getElementById('theme-toggle');
     const body = document.body;
@@ -203,7 +157,6 @@
         '<div class="row group-wrap" data-group-wrap="' + key + '">',
           '<div class="group-title" data-group="' + key + '">',
             '<span class="title-text">' + title + '</span>',
-            // master checkbox lives next to title text
             '<label class="master-wrap"><input type="checkbox" class="master" id="' + masterId + '" data-master="' + key + '" checked> All</label>',
           '</div>',
           '<div class="group-body show" data-body="' + key + '">' + children + '</div>',
@@ -220,7 +173,7 @@
         renderGroup('Discovery sources', 'discovery', DISCOVERY) +
         '<div class="muted">Uncheck any items to exclude before running. Click on group titles to collapse/expand.</div>';
 
-      // Enable collapsible behavior (click only on the title text to avoid toggling when clicking checkboxes)
+      // Enable collapsible behavior
       setupCollapsible('flagged-en');
       setupCollapsible('flagged-hu');
       setupCollapsible('flagged-ro');
@@ -271,13 +224,10 @@
       const master = getMaster(groupKey);
       const children = getChildren(groupKey);
       if (!master) return;
-      // Clicking master toggles all children
       master.addEventListener('change', function() {
         setAllChildren(groupKey, master.checked);
-        // After setting, ensure master state is not indeterminate
         master.indeterminate = false;
       });
-      // Children update master on change
       children.forEach(cb => {
         cb.addEventListener('change', function() {
           updateMasterFromChildren(groupKey);
@@ -292,7 +242,6 @@
     function buildQueries(fullName) {
       const quoted = '"' + fullName.trim() + '"';
       const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
-      // Read checked labels directly from DOM (keeps Part 3 decoupled)
       filtersEl.querySelectorAll('input.flt').forEach(function (box) {
         if (!box.checked) return;
         const grp = box.getAttribute('data-group');

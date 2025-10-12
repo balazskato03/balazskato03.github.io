@@ -1,229 +1,232 @@
 <!DOCTYPE html>
-
-
-  <meta charset="utf-8"/>
-  <meta content="width=device-width,initial-scale=1" name="viewport"/>
-  Background Check
-  <br>    :root { --bg-color:#fff; --text-color:#000; --muted-color:#666; --border-color:#eee; --code-bg:#f6f8fa; --input-bg:#fff; --input-border:#d1d5da; }
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Background Check</title>
+  <style>
+    :root { --bg-color:#fff; --text-color:#000; --muted-color:#666; --border-color:#eee; --code-bg:#f6f8fa; --input-bg:#fff; --input-border:#d1d5da; }
     body.dark-mode { --bg-color:#1a1a1a; --text-color:#e0e0e0; --muted-color:#a0a0a0; --border-color:#333; --code-bg:#2d2d2d; --input-bg:#2d2d2d; --input-border:#404040; }
     body { font-family: system-ui, Arial, sans-serif; max-width:920px; margin:32px auto; padding:0 16px; background:var(--bg-color); color:var(--text-color); transition: background-color .3s, color .3s; }
     #theme-toggle { position:absolute; top:20px; right:20px; padding:8px 16px; cursor:pointer; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color); border-radius:4px; font-size:14px; }
     h1{font-size:20px;margin-bottom:16px;} h2{margin-top:32px;font-size:18px;}
     #box{display:flex;gap:8px;} input[type=text]{flex:1;padding:12px;font-size:16px;background:var(--input-bg);color:var(--text-color);border:1px solid var(--input-border);} button{padding:12px 16px;font-size:16px;cursor:pointer;background:var(--input-bg);color:var(--text-color);border:1px solid var(--input-border);} button:hover{opacity:.8}
     .muted{color:var(--muted-color);font-size:14px;} .section{margin-top:24px;} .row{padding:8px 0;border-bottom:1px solid var(--border-color);} .status{margin-top:8px;} code{background:var(--code-bg);padding:2px 4px;}
-    .group-title{font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:12px;user-select:none;}
-    .group-title .title-text{cursor:pointer;}
-    .group-title .master-wrap{display:flex;align-items:center;gap:6px;}
+    .group-title{font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+    .group-title .title-text{cursor:pointer;} .group-title .master-wrap{display:flex;align-items:center;gap:6px;cursor:default;}
     .checkboxes label{margin:4px 12px 4px 0;display:inline-block;}
     .group-wrap{margin-bottom:8px;border:1px solid var(--border-color);border-radius:6px;padding:12px;}
     .group-body{display:none;margin-top:8px;} .group-body.show{display:block;}
-    <button id="theme-toggle">🌙 Dark Mode</button>
+  </style>
+</head>
+<body>
+  <button id="theme-toggle">🌙 Dark Mode</button>
   <h1 id="page-title">Background Check</h1>
   <div id="box">
-    <input autocomplete="off" id="nameInput" placeholder="Enter educator name..." type="text"/>
+    <input autocomplete="off" id="nameInput" placeholder="Enter educator name..." type="text" />
     <button id="runBtn">Run Check</button>
   </div>
   <div class="muted">Press Enter or click Run Check to build searches for the name with selected keywords.</div>
+
   <div class="section">
     Filters
     <div class="checkboxes" id="filters"></div>
   </div>
+
   <div class="section">
     Planned searches
     <div id="planned"></div>
   </div>
+
   <div class="section">
     Results
     <div class="status muted" id="results">No searches run yet.</div>
-    <!-- Added: Export CSV button placed after results -->
     <div style="margin-top:8px">
       <button id="exportCsvBtn" title="Export visible results to CSV">Export Results as CSV</button>
     </div>
   </div>
-  <br>  document.addEventListener('DOMContentLoaded', function () {
-    // Theme toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    if (currentTheme === 'dark') { body.classList.add('dark-mode'); themeToggle.textContent = '☀️ Light Mode'; }
-    themeToggle.addEventListener('click', function(){
-      body.classList.toggle('dark-mode');
-      if (body.classList.contains('dark-mode')) { themeToggle.textContent = '☀️ Light Mode'; localStorage.setItem('theme','dark'); }
-      else { themeToggle.textContent = '🌙 Dark Mode'; localStorage.setItem('theme','light'); }
-    });
-    // Data
-    const FLAGGED_EN = ['MCC','Mathias Corvinus Collegium','politics','policy','education','teaching','research','conference','conference speech','keynote speech','presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'];
-    const FLAGGED_HU = ['MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás','előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'];
-    const FLAGGED_RO = ['MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal','prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'];
-    const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
-    // DOM
-    const nameInput = document.getElementById('nameInput');
-    const runBtn = document.getElementById('runBtn');
-    const filtersEl = document.getElementById('filters');
-    const plannedEl = document.getElementById('planned');
-    const resultsEl = document.getElementById('results');
-    const exportBtn = document.getElementById('exportCsvBtn');
-    if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl || !exportBtn) {
-      console.warn('Inputs not found in DOM.');
-      return;
-    }
-    // Track selected filters (simplified reconstruction of existing logic)
-    const groups = [
-      { key: 'flagged-en', title: 'English keywords', items: FLAGGED_EN },
-      { key: 'flagged-hu', title: 'Hungarian keywords', items: FLAGGED_HU },
-      { key: 'flagged-ro', title: 'Romanian keywords', items: FLAGGED_RO },
-      { key: 'discovery',  title: 'Discovery platforms', items: DISCOVERY },
-    ];
-    function renderGroup(title, key, items) {
-      const masterId = 'master-' + key;
-      const children = items.map((label,i)=>`<label><input type="checkbox" class="flt" data-group="${key}" data-index="${i}" checked> ${label}</label>`).join('');
-      return [
-        `<div class="row group-wrap" data-group-wrap="${key}">`,
-          `<div class="group-title" data-toggle="${key}">`,
-            `<span class="title-text">${title}</span>`,
-            `<span class="master-wrap">`,
-              `<label><input type="checkbox" id="${masterId}" checked> All</label>`,
-            `</span>`,
-          `</div>`,
-          `<div class="group-body show" id="group-${key}">${children}</div>`,
-        `</div>`
-      ].join('');
-    }
-    filtersEl.innerHTML = groups.map(g => renderGroup(g.title, g.key, g.items)).join('');
-    // Master toggle
-    groups.forEach(g => {
-      const master = document.getElementById('master-'+g.key);
-      const body = document.getElementById('group-'+g.key);
-      if (master && body) {
-        master.addEventListener('change', () => {
-          body.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = master.checked; });
-        });
-        // Only allow title-text to toggle collapse for language groups; leave discovery unaffected
-        const titleEl = document.querySelector(`.group-title[data-toggle="${g.key}"] .title-text`);
-        if (titleEl && (g.key === 'flagged-en' || g.key === 'flagged-hu' || g.key === 'flagged-ro')) {
-          titleEl.addEventListener('click', (e) => {
-            e.stopPropagation();
-            body.classList.toggle('show');
-          });
-        }
-      }
-    });
-    // Build queries
-    function buildQueries(fullName) {
-      const quoted = '"' + fullName + '"';
-      const picks = { 'flagged-en':[], 'flagged-hu':[], 'flagged-ro':[], 'discovery':[] };
-      document.querySelectorAll('.flt').forEach(cb => { if (cb.checked) picks[cb.dataset.group].push(groups.find(x=>x.key===cb.dataset.group).items[+cb.dataset.index]); });
-      const cooccurrence = []
-        .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
-        .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
-        .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
-      const discovery = picks['discovery'].map(k => quoted + ' ' + k);
-      return { cooccurrence, discovery, standalone: [quoted] };
-    }
-    // Planned searches view
-    function renderPlanned(qs) {
-      function makeList(title, arr) {
-        return '<div class="row"><strong>'+title+':</strong> ' + arr.map(q => '<code>'+q+'</code>').join(' · ') + '</div>';
-      }
-      plannedEl.innerHTML = makeList('Co-occurrence', qs.cooccurrence) + makeList('Discovery', qs.discovery) + makeList('Standalone', qs.standalone);
-    }
-    // Netlify proxy call
-    async function braveSearch(q) {
-      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      return data.items || [];
-    }
-    function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
-    // Store latest results for export (array of sections: { q, items, error? })
-    let latestSections = [];
-    // Run
-    async function onRun() {
-      const fullName = nameInput.value.trim();
-      if (!fullName) { alert('Type a full name first.'); return; }
-      const queries = buildQueries(fullName);
-      renderPlanned(queries);
-      resultsEl.innerHTML = 'Searching...';
-      const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
-      const sections = [];
-      for (const q of allQueries) {
-        try {
-          const items = await braveSearch(q);
-          sections.push({ q, items });
-        } catch (err) {
-          sections.push({ q, items: [], error: String(err) });
-        }
-        await wait(1000);
-      }
-      latestSections = sections; // Save for CSV export
-      resultsEl.innerHTML = sections.map(function(sec){
-        const header = '<div class="row">Query: <code>' + sec.q + '</code></div>';
-        if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
-        if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
-        const list = sec.items.map(function(it){
-          const url = (it.url || it.link || it.href || '');
-          const title = (it.title || '');
-          const snippet = (it.snippet || it.description || '');
-          return '<div class="row">'
-            + '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>'
-            + '<div class="muted">' + snippet + '</div>'
-            + '</div>';
-        }).join('');
-        return header + list;
-      }).join('');
-    }
-    nameInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') onRun(); });
-    runBtn.addEventListener('click', onRun);
-    // Helper: escape CSV values properly
-    function csvEscape(val) {
-      const s = String(val ?? '').replace(/\r?\n|\r/g, ' ').trim();
-      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }
-    // Build flat CSV rows from latestSections respecting likely result shape
-    function buildCsvRows() {
-      const rows = [];
-      // Header
-      rows.push(['query','title','url','snippet']);
-      latestSections.forEach(sec => {
-        if (sec.error) {
-          rows.push([sec.q, 'ERROR', '', sec.error]);
-          return;
-        }
-        (sec.items || []).forEach(it => {
-          const title = it.title || '';
-          const url = it.url || it.link || it.href || '';
-          const snippet = it.snippet || it.description || '';
-          rows.push([sec.q, title, url, snippet]);
-        });
-        if (!sec.items || !sec.items.length) {
-          rows.push([sec.q, '(no results)', '', '']);
-        }
-      });
-      return rows;
-    }
-    // Trigger client-side CSV download
-    function triggerCsvDownload(filename, rows) {
-      const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-    // Export button handler
-    exportBtn.addEventListener('click', function(){
-      if (!latestSections || !latestSections.length) {
-        alert('No results to export yet. Run a check first.');
-        return;
-      }
-      const rows = buildCsvRows();
-      const stamp = new Date().toISOString().replace(/[:.]/g,'-');
-      triggerCsvDownload('background-check-results-' + stamp + '.csv', rows);
-    });
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const themeToggle = document.getElementById('theme-toggle');
+  const body = document.body;
+  const currentTheme = localStorage.getItem('theme') || 'light';
+  if (currentTheme === 'dark') { body.classList.add('dark-mode'); themeToggle.textContent = '☀️ Light Mode'; }
+  themeToggle.addEventListener('click', function(){
+    body.classList.toggle('dark-mode');
+    if (body.classList.contains('dark-mode')) { themeToggle.textContent = '☀️ Light Mode'; localStorage.setItem('theme','dark'); }
+    else { themeToggle.textContent = '🌙 Dark Mode'; localStorage.setItem('theme','light'); }
   });
-  
+
+  const FLAGGED_EN = ['MCC','Mathias Corvinus Collegium','politics','policy','education','teaching','research','conference','conference speech','keynote speech','presentation','public speech','panel discussion','summit','lecture','course','debate','opinion','interview'];
+  const FLAGGED_HU = ['MCC','Mathias Corvinus Collegium','politika','politikai','oktatás','tanítás','kutatás','konferencia','konferencia-előadás','nyitóelőadás','előadás','nyilvános beszéd','panelbeszélgetés','csúcstalálkozó','előadás','tanfolyam','vita','vélemény','interjú'];
+  const FLAGGED_RO = ['MCC','Mathias Corvinus Collegium','politică','politici','educație','predare','cercetare','conferință','discurs la conferință','discurs principal','prezentare','discurs public','discuție de panel','summit','prelegere','curs','dezbatere','opinie','interviu'];
+  const DISCOVERY = ['Google Scholar','ORCID','ResearchGate','LinkedIn','Twitter','Facebook','Instagram','Publications','TikTok'];
+
+  const nameInput = document.getElementById('nameInput');
+  const runBtn = document.getElementById('runBtn');
+  const filtersEl = document.getElementById('filters');
+  const plannedEl = document.getElementById('planned');
+  const resultsEl = document.getElementById('results');
+  const exportBtn = document.getElementById('exportCsvBtn');
+  if (!nameInput || !runBtn || !filtersEl || !plannedEl || !resultsEl || !exportBtn) { console.warn('Inputs not found in DOM.'); return; }
+
+  function renderGroup(title, key, items){
+    const children = items.map((label,i)=>`<label><input type="checkbox" class="flt" data-group="${key}" data-index="${i}" checked> ${label}</label>`).join('');
+    const masterId = 'master-' + key;
+    return [
+      `<div class="row group-wrap" data-group-wrap="${key}">`,
+        `<div class="group-title" data-group="${key}">`,
+          `<span class="title-text">${title}</span>`,
+          `<label class="master-wrap"><input type="checkbox" class="master" id="${masterId}" data-master="${key}" checked> All</label>`,
+        `</div>`,
+        `<div class="group-body show" data-body="${key}">${children}</div>`,
+      `</div>`
+    ].join('');
+  }
+  function renderDiscovery(title, key, items){
+    const children = items.map((label,i)=>`<label><input type="checkbox" class="flt" data-group="${key}" data-index="${i}" checked> ${label}</label>`).join('');
+    const masterId = 'master-' + key;
+    return [
+      `<div class="row group-wrap" data-group-wrap="${key}">`,
+        `<div class="group-title" style="cursor: default;" data-group="${key}">`,
+          `<span class="title-text" style="cursor: default;">${title}</span>`,
+          `<label class="master-wrap"><input type="checkbox" class="master" id="${masterId}" data-master="${key}" checked> All</label>`,
+        `</div>`,
+        `<div class="group-body show" data-body="${key}">${children}</div>`,
+      `</div>`
+    ].join('');
+  }
+  function renderFilters(){
+    filtersEl.innerHTML =
+      renderGroup('▼ Co‑occurrence keywords (English)', 'flagged-en', FLAGGED_EN) +
+      renderGroup('▼ Co‑occurrence keywords (Hungarian)', 'flagged-hu', FLAGGED_HU) +
+      renderGroup('▼ Co‑occurrence keywords (Romanian)', 'flagged-ro', FLAGGED_RO) +
+      renderDiscovery('Discovery sources', 'discovery', DISCOVERY) +
+      '<div class="muted">Uncheck any items to exclude before running. Click on group titles to collapse/expand.</div>';
+    setupCollapsible('flagged-en');
+    setupCollapsible('flagged-hu');
+    setupCollapsible('flagged-ro');
+    setupMaster('flagged-en');
+    setupMaster('flagged-hu');
+    setupMaster('flagged-ro');
+    setupMaster('discovery');
+    updateMasterFromChildren('flagged-en');
+    updateMasterFromChildren('flagged-hu');
+    updateMasterFromChildren('flagged-ro');
+    updateMasterFromChildren('discovery');
+  }
+  function setupCollapsible(groupKey){
+    const header = filtersEl.querySelector(`.group-title[data-group="${groupKey}"] .title-text`);
+    const body = filtersEl.querySelector(`.group-body[data-body="${groupKey}"]`);
+    if (header && body){ header.addEventListener('click', ()=> body.classList.toggle('show')); }
+  }
+  function getMaster(groupKey){ return filtersEl.querySelector(`input.master[data-master="${groupKey}"]`); }
+  function getChildren(groupKey){ return Array.from(filtersEl.querySelectorAll(`input.flt[data-group="${groupKey}"]`)); }
+  function setAllChildren(groupKey, checked){ getChildren(groupKey).forEach(cb=>{ cb.checked = checked; }); }
+  function updateMasterFromChildren(groupKey){
+    const master = getMaster(groupKey); if (!master) return;
+    const children = getChildren(groupKey);
+    const total = children.length; const checkedCount = children.filter(cb=>cb.checked).length;
+    master.indeterminate = checkedCount > 0 && checkedCount < total;
+    master.checked = checkedCount === total;
+  }
+  function setupMaster(groupKey){
+    const master = getMaster(groupKey); const children = getChildren(groupKey);
+    if (!master) return;
+    master.addEventListener('change', function(){ setAllChildren(groupKey, master.checked); master.indeterminate = false; updateMasterFromChildren(groupKey); });
+    children.forEach(cb=>{ cb.addEventListener('change', function(){ updateMasterFromChildren(groupKey); }); });
+  }
+  renderFilters();
+  function buildQueries(fullName){
+    const quoted = '"' + fullName.trim() + '"';
+    const picks = { 'flagged-en': [], 'flagged-hu': [], 'flagged-ro': [], 'discovery': [] };
+    filtersEl.querySelectorAll('input.flt').forEach(function(box){
+      if (!box.checked) return;
+      const grp = box.getAttribute('data-group');
+      const label = (box.parentElement ? box.parentElement.textContent : '').trim();
+      if (!label) return;
+      if (grp === 'discovery') picks['discovery'].push(label);
+      else if (grp === 'flagged-en') picks['flagged-en'].push(label);
+      else if (grp === 'flagged-hu') picks['flagged-hu'].push(label);
+      else if (grp === 'flagged-ro') picks['flagged-ro'].push(label);
+    });
+    const cooccurrence = []
+      .concat(picks['flagged-en'].map(k => quoted + ' "' + k + '"'))
+      .concat(picks['flagged-hu'].map(k => quoted + ' "' + k + '"'))
+      .concat(picks['flagged-ro'].map(k => quoted + ' "' + k + '"'));
+    const discovery = picks['discovery'].map(k => quoted + ' ' + k);
+    return { cooccurrence, discovery, standalone: [quoted] };
+  }
+  function renderPlanned(qs){
+    function makeList(title, arr){
+      return '<div class="row"><strong>' + title + ':</strong> ' + arr.map(q => '<code>' + q + '</code>').join(' · ') + '</div>';
+    }
+    plannedEl.innerHTML = makeList('Co-occurrence', qs.cooccurrence) + makeList('Discovery', qs.discovery) + makeList('Standalone', qs.standalone);
+  }
+  async function braveSearch(q){
+    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return data.items || [];
+  }
+  function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+  let latestSections = [];
+  async function onRun(){
+    const fullName = nameInput.value.trim();
+    if (!fullName){ alert('Type a full name first.'); return; }
+    const queries = buildQueries(fullName);
+    renderPlanned(queries);
+    resultsEl.innerHTML = 'Searching...';
+    const allQueries = [].concat(queries.cooccurrence, queries.discovery, queries.standalone);
+    const sections = [];
+    for (const q of allQueries){
+      try { const items = await braveSearch(q); sections.push({ q, items }); }
+      catch(err){ sections.push({ q, items: [], error: String(err) }); }
+      await wait(1000);
+    }
+    latestSections = sections;
+    resultsEl.innerHTML = sections.map(function(sec){
+      const header = '<div class="row"><strong>Query:</strong> <code>' + sec.q + '</code></div>';
+      if (sec.error) return header + '<div class="row muted">Error: ' + sec.error + '</div>';
+      if (!sec.items.length) return header + '<div class="row muted">No results.</div>';
+      const list = sec.items.map(function(it){
+        const url = (it.url || it.link || it.href || '');
+        const title = (it.title || '');
+        const snippet = (it.snippet || it.description || '');
+        return '<div class="row">' + '<a href="' + url + '" target="_blank" rel="noopener">' + title + '</a>' + '<div class="muted">' + snippet + '</div>' + '</div>';
+      }).join('');
+      return header + list;
+    }).join('');
+  }
+  nameInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') onRun(); });
+  runBtn.addEventListener('click', onRun);
+
+  function csvEscape(val) {
+    const s = String(val ?? '').replace(/\r?\n|\r/g, ' ').trim();
+    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function buildCsvRows() {
+    const rows = [];
+    rows.push(['query','title','url','snippet']);
+    latestSections.forEach(sec => {
+      if (sec.error) { rows.push([sec.q, 'ERROR', '', sec.error]); return; }
+      (sec.items || []).forEach(it => {
+        const title = it.title || '';
+        const url = it.url || it.link || it.href || '';
+        const snippet = it.snippet || it.description || '';
+        rows.push([sec.q, title, url, snippet]);
+      });
+      if (!sec.items || !sec.items.length) {
+        rows.push([sec.q, '(no results)', '', '']);
+      }
+    });
+    return rows;
+  }
+  function triggerCsvDownload(filename, rows) {
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url
